@@ -106,7 +106,7 @@ static THD_FUNCTION(CaptureImage, arg) {
     (void)arg;
 
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
-	po8030_advanced_config(FORMAT_RGB565, 0, 10, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
+	po8030_advanced_config(FORMAT_RGB565, 0, 50, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
 	dcmi_enable_double_buffering();
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
 	dcmi_prepare();
@@ -150,18 +150,18 @@ static THD_FUNCTION(ProcessImage, arg) {
 			//takes nothing from the second byte
 			image_red[i/2] = ((uint8_t)img_buff_ptr[i]&0xF8);
 			image_blue[i/2] = (((uint8_t)img_buff_ptr[i+1]&0x1F)<<3);
-			image_green[i/2] = ((((uint8_t)img_buff_ptr[i]&0x03)<<3) + (((uint8_t)img_buff_ptr[i+1]&0xE0)>>5));
+			image_green[i/2] = ((((uint8_t)img_buff_ptr[i]&0x07)<<5) + (((uint8_t)img_buff_ptr[i+1]&0xE0)>>3));
 
 		}
 
 		//search for a line in the image and gets its width in pixels
-		//lineWidth = extract_line_width(image);
+		lineWidth = extract_line_width(image_green);
 
 		//converts the width into a distance between the robot and the camera
 		if(lineWidth){
-			//distance_cm = PXTOCM/lineWidth;
+			distance_cm = PXTOCM/lineWidth;
 		}
-
+		else{distance_cm = 0;}
 		if(send_to_computer){
 			//sends to the computer the image
 			SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);
