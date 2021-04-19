@@ -11,9 +11,16 @@
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
+#include <sensors/proximity.h>
+#include <sensors/VL53L0X/VL53L0X.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
+#include "distance_sensor.h"
+
+messagebus_t bus;
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
@@ -41,6 +48,9 @@ int main(void)
     chSysInit();
     mpu_init();
 
+    // Init the communication bus
+    messagebus_init(&bus, &bus_lock, &bus_condvar);
+
     //starts the serial communication
     serial_start();
     //start the USB communication
@@ -50,15 +60,27 @@ int main(void)
 	po8030_start();
 	//inits the motors
 	motors_init();
+	//starts the proximity sensors
+	proximity_start();
+	calibrate_ir();
+	//start the time-of-flight sensor
+	VL53L0X_start();
+
 
 	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
-	process_image_start();
+	// pi_regulator_start();
+	// process_image_start();
+
+	// Start the thread to sense proximity
+	// proximityDetec_start();
+
+	// Start the thread to sense distance
+	distanceDetec_start();
 
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
-        chThdSleepMilliseconds(1000);
+    	chThdSleepMilliseconds(500);
     }
 }
 
