@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 
+
 #include "ch.h"
 #include "hal.h"
 #include "memory_protection.h"
@@ -11,6 +12,7 @@
 #include <motors.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
+#include <sensors/proximity.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
@@ -40,6 +42,7 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
+    //proximity_start();
 
     //starts the serial communication
     serial_start();
