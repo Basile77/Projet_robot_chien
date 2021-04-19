@@ -3,6 +3,7 @@
 #include <string.h>
 #include <math.h>
 
+
 #include "ch.h"
 #include "hal.h"
 #include "memory_protection.h"
@@ -12,7 +13,9 @@
 #include <camera/po8030.h>
 #include <chprintf.h>
 #include <sensors/proximity.h>
+
 #include <sensors/VL53L0X/VL53L0X.h>
+
 
 #include <pi_regulator.h>
 #include <process_image.h>
@@ -47,6 +50,7 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
+    //proximity_start();
 
     // Init the communication bus
     messagebus_init(&bus, &bus_lock, &bus_condvar);
