@@ -9,7 +9,10 @@
 #include <motors.h>
 #include <pi_regulator.h>
 #include <process_image.h>
-#include <process_image.h>
+#include <distance_sensor.h>
+
+#define TAILLE_BUFFER 		10
+#define DIST_MAX 			500
 
 
 static THD_WORKING_AREA(waDeplacement_robot, 256);
@@ -23,6 +26,14 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     int16_t position = 0;
     float distance = 50.;
     int16_t mode = MODE_0;
+    uint16_t dist_TOF = DIST_MAX;
+
+	uint16_t historique_dist_TOF[TAILLE_BUFFER] = {500};
+	uint8_t position_buffer = 0;
+
+	uint16_t somme = 0;
+    float moy_dist_TOF = DIST_MAX;
+
 
     while(1){
         time = chVTGetSystemTime();
@@ -31,20 +42,30 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 			distance = get_distance_cm();
 			dist_TOF = get_distTOF();
+			historique_dist_TOF[position_buffer] = dist_TOF;
 			position = get_line_position();
 			//computes the speed to give to the motors
 			//distance_cm is modified by the image processing thread
-		   if (dist_TOF > 5){
+		   if (moy_dist_TOF > 50){
 				right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
 				left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
 			}
-			else if (dist_TOF < 5 && ){
+			else if (moy_dist_TOF < 50 ){
 				right_motor_set_speed(0);
 				left_motor_set_speed(0);
-				mode = MODE_1;
+				mode = MODE_0;
 
 			}
         }
+
+        ++position_buffer;
+        if (position_buffer == TAILLE_BUFFER){position_buffer = 0;}
+
+
+        for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
+        	somme += historique_dist_TOF[i];
+        }
+        moy_dist_TOF = (float)somme/(TAILLE_BUFFER+1);
 
         if (mode == MODE_1){
         	right_motor_set_speed(500);

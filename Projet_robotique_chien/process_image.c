@@ -11,7 +11,7 @@
 
 static float distance_cm = 10;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
-static uint8_t couleur_camera = 0
+static uint8_t couleur_camera = 0;
 
 
 //semaphore
@@ -183,7 +183,7 @@ uint16_t get_line_position(void){
 	return line_position;
 }
 
-uint16_t get_couleurvoid){
+uint16_t get_couleur(void){
 	return couleur_camera;
 }
 
