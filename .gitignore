@@ -1,0 +1,8 @@
+*.bin
+*.dmp
+*.elf
+*.hex
+*.list
+*.map
+*.lst
+*.o

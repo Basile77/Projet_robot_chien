@@ -61,11 +61,11 @@ static THD_FUNCTION(Deplacement_robot, arg) {
         ++position_buffer;
         if (position_buffer == TAILLE_BUFFER){position_buffer = 0;}
 
-
+        somme = 0;
         for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
         	somme += historique_dist_TOF[i];
         }
-        moy_dist_TOF = (float)somme/(TAILLE_BUFFER+1);
+        moy_dist_TOF = (float)somme/(TAILLE_BUFFER);
 
         if (mode == MODE_1){
         	right_motor_set_speed(500);
