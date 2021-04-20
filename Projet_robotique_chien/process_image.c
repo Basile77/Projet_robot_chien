@@ -182,7 +182,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 		}
 
 
-			color_memory = extract_color(image_green, image_red, image_blue);
+		color_memory = extract_color(image_green, image_red, image_blue);
 
 
 		//search for a line in the image and gets its width in pixels

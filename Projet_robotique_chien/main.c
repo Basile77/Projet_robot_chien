@@ -91,6 +91,16 @@ int main(void)
     	if (actual_color == VERT){
             palTogglePad(GPIOD, GPIOD_LED_FRONT);
     	}
+
+    	if (actual_color == ROUGE){
+            palTogglePad(GPIOB, GPIOB_LED_BODY);
+    	}
+
+    	if (actual_color == ROUGE){
+            palTogglePad(GPIOB, GPIOB_LED_BODY);
+            palTogglePad(GPIOD, GPIOD_LED_FRONT);
+    	}
+
     	chThdSleepMilliseconds(500);
     }
 }
