@@ -96,7 +96,7 @@ int main(void)
             palTogglePad(GPIOB, GPIOB_LED_BODY);
     	}
 
-    	if (actual_color == ROUGE){
+    	if (actual_color == BLEU){
             palTogglePad(GPIOB, GPIOB_LED_BODY);
             palTogglePad(GPIOD, GPIOD_LED_FRONT);
     	}
