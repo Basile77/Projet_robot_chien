@@ -72,7 +72,7 @@ int main(void)
 
 
 	//stars the threads for the pi regulator and the processing of the image
-	Deplacement_robot_start();
+	//Deplacement_robot_start();
 	process_image_start();
 
 
@@ -82,10 +82,15 @@ int main(void)
 	// Start the thread to sense distance
 	distanceDetec_start();
 
+	uint8_t actual_color = NO_COLOR;
 
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
+    	actual_color = get_couleur();
+    	if (actual_color == VERT){
+            palTogglePad(GPIOD, GPIOD_LED_FRONT);
+    	}
     	chThdSleepMilliseconds(500);
     }
 }

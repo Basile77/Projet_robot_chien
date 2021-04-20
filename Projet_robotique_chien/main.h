@@ -28,9 +28,11 @@ extern "C" {
 #define MODE_1					1
 #define MODE_2					2
 
-#define BLEU					0
-#define VERT					1
-#define ROUGE					2
+#define NO_COLOR				0
+#define BLEU					1
+#define VERT					2
+#define ROUGE					3
+
 
 
 /** Robot wide IPC bus. */
