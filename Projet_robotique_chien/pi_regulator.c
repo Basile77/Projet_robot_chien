@@ -15,6 +15,7 @@
 #define DIST_MAX 			500
 
 
+
 static THD_WORKING_AREA(waDeplacement_robot, 256);
 static THD_FUNCTION(Deplacement_robot, arg) {
 
@@ -34,6 +35,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 	uint16_t somme = 0;
     uint16_t moy_dist_TOF = DIST_MAX;
 
+	uint8_t erreur_cancel = 0;
 
     while(1){
         time = chVTGetSystemTime();
@@ -44,15 +46,28 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 			case MODE_0:
 
+		    	//chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
+		    	wait_sem();
+		    	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", historique_dist_TOF[1]);
+
+
+		    	if (erreur_cancel == 10){
+					dist_TOF = get_distTOF();
+		    	}
+		    	else {
+		    		++erreur_cancel;
+		    		dist_TOF = 500;
+		    	}
+
+
 				distance = get_distance_cm();
-				dist_TOF = get_distTOF();
 				historique_dist_TOF[position_buffer] = dist_TOF;
 				position = get_line_position();
-			   if (moy_dist_TOF > 50){
+			   if (dist_TOF > 50){
 					right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
 					left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
 				}
-				else if (moy_dist_TOF < 50 ){
+				else if (dist_TOF < 50 ){
 					right_motor_set_speed(0);
 					left_motor_set_speed(0);
 					mode = MODE_1;
@@ -61,7 +76,9 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 
 				++position_buffer;
-				if (position_buffer == TAILLE_BUFFER){position_buffer = 0;}
+				if (position_buffer == TAILLE_BUFFER){
+
+					position_buffer = 0;}
 
 				somme = 0;
 				for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
@@ -69,8 +86,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 				}
 				moy_dist_TOF = somme/(TAILLE_BUFFER);
 
-		    	chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
-		    	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", historique_dist_TOF[1]);
+
 
 				break;
 
