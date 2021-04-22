@@ -80,29 +80,18 @@ int main(void)
 	proximityDetec_start();
 
 	// Start the thread to sense distance
-	// distanceDetec_start();
+	distanceDetec_start();
+
+
+    //starts the microphones processing thread.
+    //it calls the callback given in parameter when samples are ready
+    //mic_start(&processAudioData);
 
 	uint8_t actual_color = NO_COLOR;
 
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
-<<<<<<< HEAD
-//  	actual_color = get_couleur();
-//  	if (actual_color == VERT){
-//          palTogglePad(GPIOD, GPIOD_LED_FRONT);
-//  	}
-//
-//  	if (actual_color == ROUGE){
-//          palTogglePad(GPIOB, GPIOB_LED_BODY);
-//  	}
-//
-//  	if (actual_color == BLEU){
-//          palTogglePad(GPIOB, GPIOB_LED_BODY);
-//          palTogglePad(GPIOD, GPIOD_LED_FRONT);
-//  	}
-=======
->>>>>>> 7f212a40290c97ac6d779c073b0070f90d8a90b7
 
     	chThdSleepMilliseconds(500);
     }

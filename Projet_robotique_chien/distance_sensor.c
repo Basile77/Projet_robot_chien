@@ -25,16 +25,14 @@ static uint8_t current_TOF_state = NO_MEASURE;
 static uint16_t distTOF = 0;
 
 // Semaphore
-<<<<<<< HEAD
 static BSEMAPHORE_DECL(wall_contact_sem, TRUE);
 static BSEMAPHORE_DECL(distance_info_sem, TRUE);
-=======
+
 
 
 // Proximity / TOF functions
 void arrival_handler(void);
 void distance_to_ball_handler(void);
->>>>>>> 7f212a40290c97ac6d779c073b0070f90d8a90b7
 
 static THD_WORKING_AREA(waProximityDetec, 256);
 static THD_FUNCTION(ProximityDetec, arg) {
