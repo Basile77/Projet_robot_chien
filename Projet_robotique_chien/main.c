@@ -85,11 +85,11 @@ int main(void)
 	// proximityDetec_start();
 
 	// Start the thread to sense distance
-	// distanceDetec_start();
+	distanceDetec_start();
 
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
-    mic_start(&processAudioData);
+    //mic_start(&processAudioData);
 
     /* Infinite loop. */
     while (1) {

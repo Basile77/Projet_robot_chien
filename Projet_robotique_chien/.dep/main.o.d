@@ -157,6 +157,11 @@ build/obj/main.o: main.c \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/../../platform/inc/../../core/inc/vl53l0x_def.h \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/../../platform/inc/vl53l0x_platform_log.h \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/../../platform/inc/vl53l0x_i2c_platform.h \
+ ../../lib/e-puck2_main-processor/src/audio/microphone.h \
+ ../../lib/e-puck2_main-processor/src/audio/mp45dt02_processing.h \
+ audio_processing.h fft.h communications.h \
+ ../../lib/e-puck2_main-processor/ChibiOS//os/ext/CMSIS/include/arm_math.h \
+ ../../lib/e-puck2_main-processor/ChibiOS//os/ext/CMSIS/include/core_cm4.h \
  pi_regulator.h process_image.h distance_sensor.h
 
 c:\users\basil\documents\tp_robotique\eclipse_e-puck2\tools\gcc-arm-none-eabi-7-2017-q4-major-win32\arm-none-eabi\include\stdio.h:
@@ -478,6 +483,20 @@ c:\users\basil\documents\tp_robotique\eclipse_e-puck2\tools\gcc-arm-none-eabi-7-
 ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/../../platform/inc/vl53l0x_platform_log.h:
 
 ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/../../platform/inc/vl53l0x_i2c_platform.h:
+
+../../lib/e-puck2_main-processor/src/audio/microphone.h:
+
+../../lib/e-puck2_main-processor/src/audio/mp45dt02_processing.h:
+
+audio_processing.h:
+
+fft.h:
+
+communications.h:
+
+../../lib/e-puck2_main-processor/ChibiOS//os/ext/CMSIS/include/arm_math.h:
+
+../../lib/e-puck2_main-processor/ChibiOS//os/ext/CMSIS/include/core_cm4.h:
 
 pi_regulator.h:
 
