@@ -72,21 +72,22 @@ int main(void)
 
 
 	//stars the threads for the pi regulator and the processing of the image
-	Deplacement_robot_start();
-	process_image_start();
+	//Deplacement_robot_start();
+	//process_image_start();
 
 
 	// Start the thread to sense proximity
-	// proximityDetec_start();
+	proximityDetec_start();
 
 	// Start the thread to sense distance
-	distanceDetec_start();
+	// distanceDetec_start();
 
 	uint8_t actual_color = NO_COLOR;
 
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
+<<<<<<< HEAD
 //  	actual_color = get_couleur();
 //  	if (actual_color == VERT){
 //          palTogglePad(GPIOD, GPIOD_LED_FRONT);
@@ -100,6 +101,8 @@ int main(void)
 //          palTogglePad(GPIOB, GPIOB_LED_BODY);
 //          palTogglePad(GPIOD, GPIOD_LED_FRONT);
 //  	}
+=======
+>>>>>>> 7f212a40290c97ac6d779c073b0070f90d8a90b7
 
     	chThdSleepMilliseconds(500);
     }

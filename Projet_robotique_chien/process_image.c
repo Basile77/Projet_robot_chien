@@ -8,6 +8,11 @@
 
 #include <process_image.h>
 
+#define MEMORIZE_COLOR		0
+#define FIND_COLOR			1
+
+#define CAPTURING			0
+#define NOT_CAPTURING		1
 
 static float distance_cm = 10;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle

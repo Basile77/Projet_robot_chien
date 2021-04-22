@@ -14,6 +14,11 @@
 #define TAILLE_BUFFER 		10
 #define DIST_MAX 			500
 
+#define NOT_MOVING			0
+#define MOVE_CENTER			1
+#define LOOKING_FOR_BALL 	2
+#define GO_TO_BALL			3
+#define GO_BACK_HOME		4
 
 
 static THD_WORKING_AREA(waDeplacement_robot, 256);
@@ -46,6 +51,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 			case MODE_0:
 
+<<<<<<< HEAD
 		    	//chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
 		    	wait_sem();
 		    	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", historique_dist_TOF[1]);
@@ -68,6 +74,17 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 					left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
 				}
 				else if (dist_TOF < 50 ){
+=======
+				distance = get_distance_cm();
+				dist_TOF = get_distTOF();
+				historique_dist_TOF[position_buffer] = dist_TOF;
+				position = get_line_position();
+			   if (moy_dist_TOF > 50){
+					right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
+					left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+				}
+				else if (moy_dist_TOF < 50 ){
+>>>>>>> 7f212a40290c97ac6d779c073b0070f90d8a90b7
 					right_motor_set_speed(0);
 					left_motor_set_speed(0);
 					mode = MODE_1;
@@ -76,6 +93,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 
 				++position_buffer;
+<<<<<<< HEAD
 				if (position_buffer == TAILLE_BUFFER){
 
 					position_buffer = 0;}
@@ -88,6 +106,19 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 
 
+=======
+				if (position_buffer == TAILLE_BUFFER){position_buffer = 0;}
+
+				somme = 0;
+				for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
+					somme += historique_dist_TOF[i];
+				}
+				moy_dist_TOF = somme/(TAILLE_BUFFER);
+
+		    	chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
+		    	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", historique_dist_TOF[1]);
+
+>>>>>>> 7f212a40290c97ac6d779c073b0070f90d8a90b7
 				break;
 
 

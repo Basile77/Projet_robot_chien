@@ -11,6 +11,9 @@
 #include <fft.h>
 #include <arm_math.h>
 
+#define NO_MEASURE 			0
+#define WAIT_FOR_WHISTLE 	1
+
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
