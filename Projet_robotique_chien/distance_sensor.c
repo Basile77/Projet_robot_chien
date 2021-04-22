@@ -25,6 +25,9 @@ static uint8_t current_TOF_state = NO_MEASURE;
 static uint16_t distTOF = 0;
 
 // Semaphore
+static BSEMAPHORE_DECL(wall_contact_sem, TRUE);
+static BSEMAPHORE_DECL(distance_info_sem, TRUE);
+
 
 
 // Proximity / TOF functions
@@ -70,12 +73,13 @@ static THD_FUNCTION(DistanceDetec, arg) {
     		chThdSleepMilliseconds(TOF_SLEEP_DURATION_MS);
     		break;
 
-    	case
+
     	}
 
 
     	distTOF = VL53L0X_get_dist_mm();
     	chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", distTOF);
+		chBSemSignal(&distance_info_sem);
         chThdSleepMilliseconds(500);
     }
 }
@@ -92,4 +96,8 @@ void proximityDetec_start(void) {
 
 void distanceDetec_start(void) {
 	chThdCreateStatic(waDistanceDetec, sizeof(waDistanceDetec), NORMALPRIO, DistanceDetec, NULL);
+}
+
+void wait_sem(void) {
+	chBSemWait(&distance_info_sem);
 }

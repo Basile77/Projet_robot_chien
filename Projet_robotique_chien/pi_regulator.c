@@ -12,13 +12,38 @@
 #include <distance_sensor.h>
 
 #define TAILLE_BUFFER 		10
-#define DIST_MAX 			500
+#define DIST_INIT_TOF		500
+#define DIST_INIT 			50
+
+//Different possible mode
 
 #define NOT_MOVING			0
 #define MOVE_CENTER			1
 #define LOOKING_FOR_BALL 	2
 #define GO_TO_BALL			3
 #define GO_BACK_HOME		4
+
+#define GENERAL_TIME_SLEEP 100
+
+//Current mode of this thread
+static int8_t current_mode = NOT_MOVING;
+
+
+
+//Static parameters
+
+static int16_t position = 0;
+static float distance = DIST_INIT;
+static uint16_t dist_TOF = DIST_INIT_TOF;
+
+
+
+//handler for different mode
+
+void go_to_ball_handler(uint8_t erreur_cancel_);
+void go_back_home_handler(void);
+
+
 
 static THD_WORKING_AREA(waDeplacement_robot, 256);
 static THD_FUNCTION(Deplacement_robot, arg) {
@@ -28,79 +53,78 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
     systime_t time;
 
-    int16_t position = 0;
-    float distance = 50.;
-    int16_t mode = MODE_0;
-    uint16_t dist_TOF = DIST_MAX;
-
-	uint16_t historique_dist_TOF[TAILLE_BUFFER] = {500};
-	uint8_t position_buffer = 0;
-
-	uint16_t somme = 0;
-    uint16_t moy_dist_TOF = DIST_MAX;
-
+	uint8_t erreur_cancel = 0;
 
     while(1){
         time = chVTGetSystemTime();
 
 
-        switch (mode){
+        switch (current_mode){
 
+    	case NOT_MOVING:
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
 
-			case MODE_0:
+    	case MOVE_CENTER:
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
 
-				distance = get_distance_cm();
-				dist_TOF = get_distTOF();
-				historique_dist_TOF[position_buffer] = dist_TOF;
-				position = get_line_position();
-			   if (moy_dist_TOF > 50){
-					right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
-					left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
-				}
-				else if (moy_dist_TOF < 50 ){
-					right_motor_set_speed(0);
-					left_motor_set_speed(0);
-					mode = MODE_1;
+    	case LOOKING_FOR_BALL:
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
 
-					}
+    	case GO_TO_BALL:
+    		go_to_ball_handler(erreur_cancel);
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
 
-
-				++position_buffer;
-				if (position_buffer == TAILLE_BUFFER){position_buffer = 0;}
-
-				somme = 0;
-				for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
-					somme += historique_dist_TOF[i];
-				}
-				moy_dist_TOF = somme/(TAILLE_BUFFER);
-
-		    	chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
-		    	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", historique_dist_TOF[1]);
-
-				break;
-
-
-
-			case MODE_1:
-				right_motor_set_speed(500);
-				left_motor_set_speed(-500);
-				mode = MODE_2;
-
-				break;
-
-
-			case MODE_2:
-				right_motor_set_speed(-500);
-				left_motor_set_speed(-500);
-
-				break;
+    	case GO_BACK_HOME:
+    		go_back_home_handler();
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
 
         }
-        //100Hz
-        chThdSleepUntilWindowed(time, time + MS2ST(10));
 
     }
 }
+
+
+
+void go_to_ball_handler(uint8_t erreur_cancel_){
+	//chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
+	wait_sem();
+	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", dist_TOF);
+
+	// Supprimer les 10 premières valeurs
+	if (erreur_cancel_ == 10){
+		dist_TOF = get_distTOF();
+	}
+	else {
+		++erreur_cancel_;
+		dist_TOF = 500;
+	}
+
+
+	distance = get_distance_cm();
+	position = get_line_position();
+   if (dist_TOF > 50){
+		right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
+		left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+	}
+
+	else if (dist_TOF < 50 ){
+		right_motor_set_speed(0);
+		left_motor_set_speed(0);
+		current_mode = GO_BACK_HOME;
+		}
+}
+
+
+void go_back_home_handler(void){
+	right_motor_set_speed(-500);
+	left_motor_set_speed(-500);
+}
+
 
 void Deplacement_robot_start(void){
 	chThdCreateStatic(waDeplacement_robot, sizeof(waDeplacement_robot), NORMALPRIO, Deplacement_robot, NULL);
