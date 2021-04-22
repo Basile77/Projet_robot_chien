@@ -32,11 +32,12 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 	uint8_t position_buffer = 0;
 
 	uint16_t somme = 0;
-    float moy_dist_TOF = DIST_MAX;
+    uint16_t moy_dist_TOF = DIST_MAX;
 
 
     while(1){
         time = chVTGetSystemTime();
+
 
         switch (mode){
 
@@ -54,7 +55,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 				else if (moy_dist_TOF < 50 ){
 					right_motor_set_speed(0);
 					left_motor_set_speed(0);
-					mode = MODE_0;
+					mode = MODE_1;
 
 					}
 
@@ -66,7 +67,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 				for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
 					somme += historique_dist_TOF[i];
 				}
-				moy_dist_TOF = (float)somme/(TAILLE_BUFFER);
+				moy_dist_TOF = somme/(TAILLE_BUFFER);
 
 		    	chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
 		    	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", historique_dist_TOF[1]);
