@@ -81,22 +81,14 @@ int main(void)
 
 	// Start the thread to sense distance
 	distanceDetec_start();
-<<<<<<< HEAD
-=======
 
 
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
     //mic_start(&processAudioData);
->>>>>>> Deplacement_moteur_couleur
 
-<<<<<<< HEAD
-    //starts the microphones processing thread.
-    //it calls the callback given in parameter when samples are ready
-    //mic_start(&processAudioData);
-=======
 	uint8_t actual_color = NO_COLOR;
->>>>>>> 7f212a40290c97ac6d779c073b0070f90d8a90b7
+
 
     /* Infinite loop. */
     while (1) {

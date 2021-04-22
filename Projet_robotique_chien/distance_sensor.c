@@ -20,8 +20,9 @@ static uint8_t current_prox_state = NO_MEASURE;
 
 // TOF States
 #define DISTANCE_TO_BALL	1
-static uint8_t current_TOF_state = NO_MEASURE;
+static uint8_t current_TOF_state = DISTANCE_TO_BALL;
 
+//distance measured by TOF
 static uint16_t distTOF = 0;
 
 // Semaphore
@@ -30,7 +31,7 @@ static BSEMAPHORE_DECL(distance_info_sem, TRUE);
 
 
 
-// Proximity / TOF functions
+// Proximity / TOF functions prototypes
 void arrival_handler(void);
 void distance_to_ball_handler(void);
 
@@ -39,8 +40,6 @@ static THD_FUNCTION(ProximityDetec, arg) {
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
-
-    uint8_t contact_counter = 0;
 
     while(1) {
     	switch(current_prox_state) {
@@ -74,6 +73,7 @@ static THD_FUNCTION(DistanceDetec, arg) {
     		break;
 
 
+
     	}
 
 
@@ -81,10 +81,19 @@ static THD_FUNCTION(DistanceDetec, arg) {
     	chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", distTOF);
 		chBSemSignal(&distance_info_sem);
         chThdSleepMilliseconds(500);
+
+    	case DISTANCE_TO_BALL:
+    		distance_to_ball_handler();
+    		chThdSleepMilliseconds(TOF_SLEEP_DURATION_MS);
+    	}
+
     }
 }
 
-
+void distance_to_ball_handler(void) {
+	distTOF = VL53L0X_get_dist_mm();
+	chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", distTOF);
+}
 
 uint16_t get_distTOF(void) {
 	return distTOF;
