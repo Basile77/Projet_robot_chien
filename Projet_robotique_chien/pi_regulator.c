@@ -38,48 +38,61 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     while(1){
         time = chVTGetSystemTime();
 
-        if (mode == MODE_0){
+        switch (mode){
 
-			distance = get_distance_cm();
-			dist_TOF = get_distTOF();
-			historique_dist_TOF[position_buffer] = dist_TOF;
-			position = get_line_position();
-			//computes the speed to give to the motors
-			//distance_cm is modified by the image processing thread
-		   if (moy_dist_TOF > 50){
-				right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
-				left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
-			}
-			else if (moy_dist_TOF < 50 ){
-				right_motor_set_speed(0);
-				left_motor_set_speed(0);
-				mode = MODE_0;
 
-			}
-        }
+			case MODE_0:
 
-        ++position_buffer;
-        if (position_buffer == TAILLE_BUFFER){position_buffer = 0;}
+				distance = get_distance_cm();
+				dist_TOF = get_distTOF();
+				historique_dist_TOF[position_buffer] = dist_TOF;
+				position = get_line_position();
+			   if (moy_dist_TOF > 50){
+					right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
+					left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+				}
+				else if (moy_dist_TOF < 50 ){
+					right_motor_set_speed(0);
+					left_motor_set_speed(0);
+					mode = MODE_0;
 
-        somme = 0;
-        for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
-        	somme += historique_dist_TOF[i];
-        }
-        moy_dist_TOF = (float)somme/(TAILLE_BUFFER);
+					}
 
-        if (mode == MODE_1){
-        	right_motor_set_speed(500);
-        	left_motor_set_speed(-500);
-        	mode = MODE_2;
-        }
 
-        if (mode == MODE_2){
-        	right_motor_set_speed(-500);
-        	left_motor_set_speed(-500);
+				++position_buffer;
+				if (position_buffer == TAILLE_BUFFER){position_buffer = 0;}
+
+				somme = 0;
+				for (uint8_t i = 0; i<TAILLE_BUFFER; ++i){
+					somme += historique_dist_TOF[i];
+				}
+				moy_dist_TOF = (float)somme/(TAILLE_BUFFER);
+
+		    	chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
+		    	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", historique_dist_TOF[1]);
+
+				break;
+
+
+
+			case MODE_1:
+				right_motor_set_speed(500);
+				left_motor_set_speed(-500);
+				mode = MODE_2;
+
+				break;
+
+
+			case MODE_2:
+				right_motor_set_speed(-500);
+				left_motor_set_speed(-500);
+
+				break;
 
         }
         //100Hz
         chThdSleepUntilWindowed(time, time + MS2ST(10));
+
     }
 }
 

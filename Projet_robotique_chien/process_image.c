@@ -102,7 +102,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 	}
 }
 
-uint16_t extract_color(uint8_t *buffer_vert, uint8_t *buffer_rouge, uint8_t *buffer_bleu){
+uint8_t extract_color(uint8_t *buffer_vert, uint8_t *buffer_rouge, uint8_t *buffer_bleu){
 
 	uint16_t taille_vert = extract_line_width(buffer_vert);
 	uint16_t taille_bleu = extract_line_width(buffer_bleu);
@@ -182,7 +182,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 		}
 
 
-		color_memory = extract_color(image_green, image_red, image_blue);
+		//color_memory = extract_color(image_green, image_red, image_blue);
 
 
 		//search for a line in the image and gets its width in pixels
@@ -211,7 +211,7 @@ uint16_t get_line_position(void){
 	return line_position;
 }
 
-uint16_t get_couleur(void){
+uint8_t get_couleur(void){
 	return color_memory;
 }
 
