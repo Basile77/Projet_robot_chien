@@ -10,6 +10,14 @@
 
 #define PROXIMITY_THRESHOLD		300
 
+#define NO_MEASURE			0
+
+// Proximity States
+#define ARRIVAL				1
+
+// TOF States
+#define DISTANCE_TO_BALL	1
+
 static uint16_t distTOF = 0;
 
 // Semaphore
@@ -21,30 +29,26 @@ static THD_FUNCTION(ProximityDetec, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
+    uint8_t contact_counter = 0;
+
     while(1) {
     	int prox_value = get_prox(0);
     	chprintf((BaseSequentialStream *)&SD3, "front right = %d \n", prox_value);
     	if (prox_value > PROXIMITY_THRESHOLD) {
-    		chBSemSignal(&wall_contact_sem);
+    		contact_counter = 5;
     	}
+    	if (contact_counter > 0) {
+    		left_motor_set_speed(-1000);
+    		right_motor_set_speed(-1000);
+    		contact_counter -= 1;
+    	}
+    	if (contact_counter == 1) {
+    		left_motor_set_speed(0);
+    		right_motor_set_speed(0);
+    		contact_counter = 0;
+    	}
+    	chprintf((BaseSequentialStream *)&SD3, "contact_counter = %d \n", contact_counter);
         chThdSleepMilliseconds(100);
-    }
-}
-
-static THD_WORKING_AREA(waWallContact, 256);
-static THD_FUNCTION(WallContact, arg) {
-
-    chRegSetThreadName(__FUNCTION__);
-    (void)arg;
-
-    while(1) {
-    	left_motor_set_speed(0);
-    	right_motor_set_speed(0);
-    	chBSemWait(&wall_contact_sem);
-    	chprintf((BaseSequentialStream *)&SD3, "Wall Touched !\n");
-    	left_motor_set_speed(-1000);
-    	right_motor_set_speed(-1000);
-    	chThdSleepMilliseconds(500);
     }
 }
 
@@ -67,7 +71,6 @@ uint16_t get_distTOF(void) {
 
 void proximityDetec_start(void) {
 	chThdCreateStatic(waProximityDetec, sizeof(waProximityDetec), NORMALPRIO, ProximityDetec, NULL);
-	chThdCreateStatic(waWallContact, sizeof(waWallContact), NORMALPRIO+1, WallContact, NULL);
 }
 
 void distanceDetec_start(void) {

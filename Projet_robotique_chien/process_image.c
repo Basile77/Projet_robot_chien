@@ -8,11 +8,15 @@
 
 #include <process_image.h>
 
+#define MEMORIZE_COLOR		0
+#define FIND_COLOR			1
+
+#define CAPTURING			0
+#define NOT_CAPTURING		1
 
 static float distance_cm = 10;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
-static uint8_t couleur_camera = 0;
-
+static uint8_t color_memory = NO_COLOR;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -21,6 +25,7 @@ static BSEMAPHORE_DECL(image_ready_sem, TRUE);
  *  Returns the line's width extracted from the image buffer given
  *  Returns 0 if line not found
  */
+
 uint16_t extract_line_width(uint8_t *buffer){
 
 	uint16_t i = 0, begin = 0, end = 0, width = 0;
@@ -102,6 +107,30 @@ uint16_t extract_line_width(uint8_t *buffer){
 	}
 }
 
+uint8_t extract_color(uint8_t *buffer_vert, uint8_t *buffer_rouge, uint8_t *buffer_bleu){
+
+	uint16_t taille_vert = extract_line_width(buffer_vert);
+	uint16_t taille_bleu = extract_line_width(buffer_bleu);
+	uint16_t taille_rouge = extract_line_width(buffer_rouge);
+
+	if (taille_vert > 0 && (buffer_vert[IMAGE_BUFFER_SIZE/2] > buffer_rouge[IMAGE_BUFFER_SIZE/2])
+						&& (buffer_vert[IMAGE_BUFFER_SIZE/2] > buffer_bleu[IMAGE_BUFFER_SIZE/2])){
+		return VERT;
+	}
+
+	if (taille_bleu > 0 && (buffer_bleu[IMAGE_BUFFER_SIZE/2] > buffer_rouge[IMAGE_BUFFER_SIZE/2])
+						&& (buffer_bleu[IMAGE_BUFFER_SIZE/2] > buffer_vert[IMAGE_BUFFER_SIZE/2])){
+		return BLEU;
+	}
+
+	if (taille_rouge > 0 && (buffer_rouge[IMAGE_BUFFER_SIZE/2] > buffer_vert[IMAGE_BUFFER_SIZE/2])
+						&& (buffer_rouge[IMAGE_BUFFER_SIZE/2] > buffer_bleu[IMAGE_BUFFER_SIZE/2])){
+		return ROUGE;
+	}
+
+	return NO_COLOR;
+}
+
 static THD_WORKING_AREA(waCaptureImage, 256);
 static THD_FUNCTION(CaptureImage, arg) {
 
@@ -157,6 +186,10 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		}
 
+
+		//color_memory = extract_color(image_green, image_red, image_blue);
+
+
 		//search for a line in the image and gets its width in pixels
 		lineWidth = extract_line_width(image_green);
 
@@ -183,8 +216,8 @@ uint16_t get_line_position(void){
 	return line_position;
 }
 
-uint16_t get_couleur(void){
-	return couleur_camera;
+uint8_t get_couleur(void){
+	return color_memory;
 }
 
 
