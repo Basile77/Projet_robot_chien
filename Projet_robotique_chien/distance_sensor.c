@@ -71,17 +71,6 @@ static THD_FUNCTION(DistanceDetec, arg) {
     	case NO_MEASURE:
     		chThdSleepMilliseconds(TOF_SLEEP_DURATION_MS);
     		break;
-
-
-
-    	}
-
-
-    	distTOF = VL53L0X_get_dist_mm();
-    	chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", distTOF);
-		chBSemSignal(&distance_info_sem);
-        chThdSleepMilliseconds(500);
-
     	case DISTANCE_TO_BALL:
     		distance_to_ball_handler();
     		chThdSleepMilliseconds(TOF_SLEEP_DURATION_MS);
@@ -92,6 +81,7 @@ static THD_FUNCTION(DistanceDetec, arg) {
 
 void distance_to_ball_handler(void) {
 	distTOF = VL53L0X_get_dist_mm();
+	chBSemSignal(&distance_info_sem);
 	chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", distTOF);
 }
 

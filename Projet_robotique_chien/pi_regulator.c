@@ -26,7 +26,7 @@
 #define GENERAL_TIME_SLEEP 100
 
 //Current mode of this thread
-static int8_t current_mode = NOT_MOVING;
+static int8_t current_mode = GO_TO_BALL;
 
 
 
@@ -40,7 +40,7 @@ static uint16_t dist_TOF = DIST_INIT_TOF;
 
 //handler for different mode
 
-void go_to_ball_handler(uint8_t erreur_cancel_);
+void go_to_ball_handler();
 void go_back_home_handler(void);
 
 
@@ -57,7 +57,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
     while(1){
         time = chVTGetSystemTime();
-
+    	chprintf((BaseSequentialStream *)&SD3, "TEST= %d mm \n", dist_TOF);
 
         switch (current_mode){
 
@@ -74,7 +74,15 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		break;
 
     	case GO_TO_BALL:
-    		go_to_ball_handler(erreur_cancel);
+
+    		// Supprimer les 10 premières valeurs
+    		if (erreur_cancel == 10){
+        		go_to_ball_handler();
+    		}
+    		else {
+    			++erreur_cancel;
+    		}
+
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
@@ -90,21 +98,14 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 
 
-void go_to_ball_handler(uint8_t erreur_cancel_){
-	//chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  moy_dist_TOF);
+void go_to_ball_handler(){
+	chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  dist_TOF);
 	wait_sem();
 	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", dist_TOF);
-
-	// Supprimer les 10 premières valeurs
-	if (erreur_cancel_ == 10){
-		dist_TOF = get_distTOF();
-	}
-	else {
-		++erreur_cancel_;
-		dist_TOF = 500;
-	}
+	dist_TOF = get_distTOF();
 
 
+	chprintf((BaseSequentialStream *)&SD3, "DistanceTOF = %d mm \n", dist_TOF);
 	distance = get_distance_cm();
 	position = get_line_position();
    if (dist_TOF > 50){
