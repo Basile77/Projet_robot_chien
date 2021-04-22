@@ -24,13 +24,17 @@ extern "C" {
 #define KI 						3.5f	//must not be zero
 #define MAX_SUM_ERROR 			(MOTOR_SPEED_LIMIT/KI)
 
-#define MODE_0					0
-#define MODE_1					1
-#define MODE_2					2
+#define WAIT_FOR_COLOR		0 		// Transition to next : whistle
+#define RETURN_CENTER		1		// Transition to next : destination reached
+#define FIND_BALL			2		// Transition to next : ball found
+#define GET_BALL			3		// Transition to next : ball reached
+#define BACK_HOME			4		// Transition to next : destination reached
 
-#define BLEU					0
-#define VERT					1
-#define ROUGE					2
+#define NO_COLOR				0
+#define BLEU					1
+#define VERT					2
+#define ROUGE					3
+
 
 
 /** Robot wide IPC bus. */

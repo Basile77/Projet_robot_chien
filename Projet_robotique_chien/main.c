@@ -15,12 +15,7 @@
 #include <sensors/proximity.h>
 
 #include <sensors/VL53L0X/VL53L0X.h>
-#include <audio/microphone.h>
 
-#include <audio_processing.h>
-#include <fft.h>
-#include <communications.h>
-#include <arm_math.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
@@ -77,23 +72,28 @@ int main(void)
 
 
 	//stars the threads for the pi regulator and the processing of the image
-	// Deplacement_robot_start();
-	// process_image_start();
+	//Deplacement_robot_start();
+	//process_image_start();
 
 
 	// Start the thread to sense proximity
-	// proximityDetec_start();
+	proximityDetec_start();
 
 	// Start the thread to sense distance
 	distanceDetec_start();
 
+<<<<<<< HEAD
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
     //mic_start(&processAudioData);
+=======
+	uint8_t actual_color = NO_COLOR;
+>>>>>>> 7f212a40290c97ac6d779c073b0070f90d8a90b7
 
     /* Infinite loop. */
     while (1) {
     	//waits 1 second
+
     	chThdSleepMilliseconds(500);
     }
 }
