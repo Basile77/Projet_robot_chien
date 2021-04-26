@@ -94,13 +94,13 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     	case GO_TO_BALL:
     		set_led(LED3, 1);
     		// Supprimer les 10 premières valeurs
-    		if (erreur_cancel == 10){
-        		go_to_ball_handler();
-    		}
-    		else {
-    			++erreur_cancel;
-    		}
-
+    		//if (erreur_cancel == 10){
+        	go_to_ball_handler();
+    		//}
+    		//else {
+    		//	++erreur_cancel;
+    		//}
+            //
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
