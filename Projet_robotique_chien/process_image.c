@@ -47,7 +47,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		{ 
 			//the slope must at least be WIDTH_SLOPE wide and is compared
 		    //to the mean of the image
-		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean && buffer[i+WIDTH_SLOPE] > 200)
+		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean)
 		    {
 		        begin = i;
 		        stop = 1;
@@ -107,7 +107,6 @@ uint16_t extract_line_width(uint8_t *buffer){
 		return width;
 	}
 }
-
 
 uint8_t extract_color(uint8_t *buffer_vert, uint8_t *buffer_rouge, uint8_t *buffer_bleu){
 
@@ -183,8 +182,8 @@ static THD_FUNCTION(ProcessImage, arg) {
 			//extracts first 5bits of the first byte
 			//takes nothing from the second byte
 			image_red[i/2] = ((uint8_t)img_buff_ptr[i]&0xF8);
-			image_blue[i/2+1] = (((uint8_t)img_buff_ptr[i+1]&0x1F)<<3);
-			image_green[i/2] = ((((uint8_t)img_buff_ptr[i]&0x07)<<5) + (((uint8_t)img_buff_ptr[i/2+1]&0xE0)>>3));
+			image_blue[i/2] = (((uint8_t)img_buff_ptr[i+1]&0x1F)<<3);
+			image_green[i/2] = ((((uint8_t)img_buff_ptr[i]&0x07)<<5) + (((uint8_t)img_buff_ptr[i+1]&0xE0)>>3));
 
 		}
 
@@ -193,7 +192,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 
 		//search for a line in the image and gets its width in pixels
-		lineWidth = extract_line_width(image_red);
+		lineWidth = extract_line_width(image_green);
 
 
 		//converts the width into a distance between the robot and the camera
@@ -203,7 +202,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 		else{distance_cm = 50;}
 		if(send_to_computer){
 			//sends to the computer the image
-			SendUint8ToComputer(image_red, IMAGE_BUFFER_SIZE);
+			SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);
 		}
 		//invert the bool
 		send_to_computer = !send_to_computer;
