@@ -10,6 +10,11 @@
 #include <communications.h>
 #include <fft.h>
 #include <arm_math.h>
+#include <leds.h>
+
+// Microphone states
+#define NO_MEASURE 			0
+#define WAIT_FOR_WHISTLE 	1
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -25,23 +30,16 @@ static float micRight_output[FFT_SIZE];
 static float micFront_output[FFT_SIZE];
 static float micBack_output[FFT_SIZE];
 
+static bool current_mic_state = WAIT_FOR_WHISTLE;
+
 #define MIN_VALUE_THRESHOLD	10000
 
-#define MIN_FREQ		10	//we don't analyze before this index to not use resources for nothing
-#define FREQ_FORWARD	16	//250Hz
-#define FREQ_LEFT		19	//296Hz
-#define FREQ_RIGHT		23	//359HZ
-#define FREQ_BACKWARD	26	//406Hz
-#define MAX_FREQ		30	//we don't analyze after this index to not use resources for nothing
+#define MIN_FREQ		64	//1000Hz we don't analyze before this index to not use resources for nothing
+#define MAX_FREQ		128	//2000Hz we don't analyze after this index to not use resources for nothing
 
-#define FREQ_FORWARD_L		(FREQ_FORWARD-1)
-#define FREQ_FORWARD_H		(FREQ_FORWARD+1)
-#define FREQ_LEFT_L			(FREQ_LEFT-1)
-#define FREQ_LEFT_H			(FREQ_LEFT+1)
-#define FREQ_RIGHT_L		(FREQ_RIGHT-1)
-#define FREQ_RIGHT_H		(FREQ_RIGHT+1)
-#define FREQ_BACKWARD_L		(FREQ_BACKWARD-1)
-#define FREQ_BACKWARD_H		(FREQ_BACKWARD+1)
+#define FREQ_WHISTLE	96 //1500Hz
+#define FREQ_WHISTLE_L	FREQ_WHISTLE-5 //FREQ_WHISTLE - 78Hz
+#define FREQ_WHISTLE_H	FREQ_WHISTLE+5 //FREQ_WHISTLE + 78Hz
 
 /*
 *	Simple function used to detect the highest value in a buffer
@@ -60,26 +58,12 @@ void sound_remote(float* data){
 	}
 
 	//go forward
-	if(max_norm_index >= FREQ_FORWARD_L && max_norm_index <= FREQ_FORWARD_H){
+	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H){
+		set_led(LED1, 1);
 		left_motor_set_speed(600);
 		right_motor_set_speed(600);
-	}
-	//turn left
-	else if(max_norm_index >= FREQ_LEFT_L && max_norm_index <= FREQ_LEFT_H){
-		left_motor_set_speed(-600);
-		right_motor_set_speed(600);
-	}
-	//turn right
-	else if(max_norm_index >= FREQ_RIGHT_L && max_norm_index <= FREQ_RIGHT_H){
-		left_motor_set_speed(600);
-		right_motor_set_speed(-600);
-	}
-	//go backward
-	else if(max_norm_index >= FREQ_BACKWARD_L && max_norm_index <= FREQ_BACKWARD_H){
-		left_motor_set_speed(-600);
-		right_motor_set_speed(-600);
-	}
-	else{
+	} else {
+		set_led(LED1, 0);
 		left_motor_set_speed(0);
 		right_motor_set_speed(0);
 	}
@@ -97,76 +81,75 @@ void sound_remote(float* data){
 */
 void processAudioData(int16_t *data, uint16_t num_samples){
 
-	/*
-	*
-	*	We get 160 samples per mic every 10ms
-	*	So we fill the samples buffers to reach
-	*	1024 samples, then we compute the FFTs.
-	*
-	*/
-
 	static uint16_t nb_samples = 0;
-	static uint8_t mustSend = 0;
 
-	//loop to fill the buffers
-	for(uint16_t i = 0 ; i < num_samples ; i+=4){
-		//construct an array of complex numbers. Put 0 to the imaginary part
-		micRight_cmplx_input[nb_samples] = (float)data[i + MIC_RIGHT];
-		micLeft_cmplx_input[nb_samples] = (float)data[i + MIC_LEFT];
-		micBack_cmplx_input[nb_samples] = (float)data[i + MIC_BACK];
-		micFront_cmplx_input[nb_samples] = (float)data[i + MIC_FRONT];
+	switch(current_mic_state) {
+	case NO_MEASURE:
+		//Do nothing
 
-		nb_samples++;
+	case WAIT_FOR_WHISTLE:
+		/*
+		*
+		*	We get 160 samples per mic every 10ms
+		*	So we fill the samples buffers to reach
+		*	1024 samples, then we compute the FFTs.
+		*
+		*/
 
-		micRight_cmplx_input[nb_samples] = 0;
-		micLeft_cmplx_input[nb_samples] = 0;
-		micBack_cmplx_input[nb_samples] = 0;
-		micFront_cmplx_input[nb_samples] = 0;
+		//loop to fill the buffers
+		for(uint16_t i = 0 ; i < num_samples ; i+=4){
+			//construct an array of complex numbers. Put 0 to the imaginary part
+			micRight_cmplx_input[nb_samples] = (float)data[i + MIC_RIGHT];
+			micLeft_cmplx_input[nb_samples] = (float)data[i + MIC_LEFT];
+			micBack_cmplx_input[nb_samples] = (float)data[i + MIC_BACK];
+			micFront_cmplx_input[nb_samples] = (float)data[i + MIC_FRONT];
 
-		nb_samples++;
+			nb_samples++;
 
-		//stop when buffer is full
+			micRight_cmplx_input[nb_samples] = 0;
+			micLeft_cmplx_input[nb_samples] = 0;
+			micBack_cmplx_input[nb_samples] = 0;
+			micFront_cmplx_input[nb_samples] = 0;
+
+			nb_samples++;
+
+			//stop when buffer is full
+			if(nb_samples >= (2 * FFT_SIZE)){
+				break;
+			}
+		}
+
 		if(nb_samples >= (2 * FFT_SIZE)){
-			break;
+			/*	FFT proccessing
+			*
+			*	This FFT function stores the results in the input buffer given.
+			*	This is an "In Place" function.
+			*/
+
+			doFFT_optimized(FFT_SIZE, micRight_cmplx_input);
+			doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
+			doFFT_optimized(FFT_SIZE, micFront_cmplx_input);
+			doFFT_optimized(FFT_SIZE, micBack_cmplx_input);
+
+			/*	Magnitude processing
+			*
+			*	Computes the magnitude of the complex numbers and
+			*	stores them in a buffer of FFT_SIZE because it only contains
+			*	real numbers.
+			*
+			*/
+			arm_cmplx_mag_f32(micRight_cmplx_input, micRight_output, FFT_SIZE);
+			arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
+			arm_cmplx_mag_f32(micFront_cmplx_input, micFront_output, FFT_SIZE);
+			arm_cmplx_mag_f32(micBack_cmplx_input, micBack_output, FFT_SIZE);
+
+			nb_samples = 0;
+
+			sound_remote(micLeft_output);
 		}
 	}
 
-	if(nb_samples >= (2 * FFT_SIZE)){
-		/*	FFT proccessing
-		*
-		*	This FFT function stores the results in the input buffer given.
-		*	This is an "In Place" function.
-		*/
 
-		doFFT_optimized(FFT_SIZE, micRight_cmplx_input);
-		doFFT_optimized(FFT_SIZE, micLeft_cmplx_input);
-		doFFT_optimized(FFT_SIZE, micFront_cmplx_input);
-		doFFT_optimized(FFT_SIZE, micBack_cmplx_input);
-
-		/*	Magnitude processing
-		*
-		*	Computes the magnitude of the complex numbers and
-		*	stores them in a buffer of FFT_SIZE because it only contains
-		*	real numbers.
-		*
-		*/
-		arm_cmplx_mag_f32(micRight_cmplx_input, micRight_output, FFT_SIZE);
-		arm_cmplx_mag_f32(micLeft_cmplx_input, micLeft_output, FFT_SIZE);
-		arm_cmplx_mag_f32(micFront_cmplx_input, micFront_output, FFT_SIZE);
-		arm_cmplx_mag_f32(micBack_cmplx_input, micBack_output, FFT_SIZE);
-
-		//sends only one FFT result over 10 for 1 mic to not flood the computer
-		//sends to UART3
-		if(mustSend > 8){
-			//signals to send the result to the computer
-			chBSemSignal(&sendToComputer_sem);
-			mustSend = 0;
-		}
-		nb_samples = 0;
-		mustSend++;
-
-		sound_remote(micLeft_output);
-	}
 }
 
 void wait_send_to_computer(void){
