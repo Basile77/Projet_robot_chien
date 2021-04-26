@@ -3,7 +3,7 @@
 #include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
-
+#include <leds.h>
 
 #include <main.h>
 #include <motors.h>
@@ -14,12 +14,13 @@
 #define TAILLE_BUFFER 		10
 #define DIST_INIT_TOF		500
 #define DIST_INIT 			50
+#define DIST_TO_CENTER		20
 #define SPEED_ROTATE		400
 #define SPEED_FORWARD		600
-#define CORRECTION 			0.05
-#define WHEEL_PERIMETER 13 // [cm]
-#define NSTEP_ONE_TURN 1000 // number of step for 1 turn of the motor
-#define TIME_CONST			1000/100/SPEED_FORWARD/WHEEL_PERIMETER*NSTEP_ONE_TURN
+#define CORRECTION 			0.2
+#define WHEEL_PERIMETER		13.0f // [cm]
+#define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
+#define TIME_CONST			(10/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 //defini 2 fois ATTENTION
 #define PI                  3.1415926536f
 #define WHEEL_DISTANCE      5.35f    //cm
@@ -38,7 +39,7 @@
 #define GENERAL_TIME_SLEEP 100
 
 //Current mode of this thread
-static int8_t current_mode = LOOKING_FOR_BALL;
+static int8_t current_mode = MOVE_CENTER;
 
 
 
@@ -48,9 +49,10 @@ static int16_t position = 0;
 static float distance = DIST_INIT;
 static uint16_t dist_TOF = DIST_INIT_TOF;
 static uint16_t dist_to_memorise = DIST_INIT_TOF;
-static uint8_t angle_counter = 0;
-static uint8_t angle_counter_half_turn = TIME_CONST*PERIMETER_EPUCK/4;
-static uint8_t speed_counter = 0;
+static uint32_t move_center_counter = 0;
+static uint16_t angle_counter = 0;
+static uint16_t angle_counter_half_turn = TIME_CONST*PERIMETER_EPUCK/4;
+static uint16_t speed_counter = 0;
 
 //handler for different mode
 
@@ -58,7 +60,7 @@ void look_for_ball_handler(void);
 void go_to_ball_handler(void);
 void go_back_center_handler(void);
 void go_back_home_handler(void);
-
+void move_center_handler(void);
 
 
 static THD_WORKING_AREA(waDeplacement_robot, 256);
@@ -79,16 +81,18 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		break;
 
     	case MOVE_CENTER:
+    		move_center_handler();
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case LOOKING_FOR_BALL:
+    		set_led(LED1, 1);
     		look_for_ball_handler();
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case GO_TO_BALL:
-
+    		set_led(LED3, 1);
     		// Supprimer les 10 premières valeurs
     		if (erreur_cancel == 10){
         		go_to_ball_handler();
@@ -101,11 +105,13 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		break;
 
     	case GO_BACK_CENTER:
+    		set_led(LED5, 1);
     		go_back_center_handler();
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case GO_BACK_HOME:
+    		set_led(LED7, 1);
     		go_back_home_handler();
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
@@ -114,6 +120,19 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
     }
 }
+void move_center_handler(){
+
+	right_motor_set_speed(-SPEED_FORWARD);
+	left_motor_set_speed(-SPEED_FORWARD);
+
+	if (move_center_counter < (DIST_TO_CENTER*TIME_CONST)){
+		right_motor_set_speed(-SPEED_FORWARD);
+		left_motor_set_speed(-SPEED_FORWARD);
+		move_center_counter++;
+	}
+	else {current_mode = LOOKING_FOR_BALL;}
+}
+
 
 void look_for_ball_handler(){
 
@@ -150,7 +169,7 @@ void go_to_ball_handler(){
 	else if (dist_TOF < 50 ){
 		right_motor_set_speed(0);
 		left_motor_set_speed(0);
-		current_mode = GO_BACK_HOME;
+		current_mode = GO_BACK_CENTER;
 		}
 }
 
@@ -169,7 +188,7 @@ void go_back_center_handler(void){
 		speed_counter++;
 	}
 
-	if (speed_counter == (dist_to_memorise*TIME_CONST)){
+	if (speed_counter > (dist_to_memorise*TIME_CONST)){
 		current_mode = GO_BACK_HOME;
 	}
 }
@@ -182,7 +201,7 @@ void go_back_home_handler(void){
 		--angle_counter;
 	}
 
-	if (angle_counter + TIME_CONST*PERIMETER_EPUCK/4 == 0){
+	if (angle_counter + TIME_CONST*PERIMETER_EPUCK/4 < 0){
 		right_motor_set_speed(0);
 		left_motor_set_speed(0);
 	}

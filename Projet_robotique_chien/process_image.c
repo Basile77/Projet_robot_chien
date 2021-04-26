@@ -47,7 +47,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		{ 
 			//the slope must at least be WIDTH_SLOPE wide and is compared
 		    //to the mean of the image
-		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean)
+		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean && buffer[i+WIDTH_SLOPE] > 200)
 		    {
 		        begin = i;
 		        stop = 1;
@@ -93,6 +93,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
+		line_position = 0;
 	}else{
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
@@ -106,6 +107,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		return width;
 	}
 }
+
 
 uint8_t extract_color(uint8_t *buffer_vert, uint8_t *buffer_rouge, uint8_t *buffer_bleu){
 
