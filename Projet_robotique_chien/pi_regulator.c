@@ -15,9 +15,9 @@
 #define DIST_INIT_TOF		500
 #define DIST_INIT 			50
 #define DIST_TO_CENTER		20
-#define SPEED_ROTATE		400
+#define SPEED_ROTATE		200
 #define SPEED_FORWARD		600
-#define CORRECTION 			0.2
+#define CORRECTION 			0.05
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(10/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
@@ -39,7 +39,7 @@
 #define GENERAL_TIME_SLEEP 100
 
 //Current mode of this thread
-static int8_t current_mode = MOVE_CENTER;
+static int8_t current_mode = LOOKING_FOR_BALL;
 
 
 
@@ -88,19 +88,19 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     	case LOOKING_FOR_BALL:
     		set_led(LED1, 1);
     		look_for_ball_handler();
-    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case GO_TO_BALL:
-    		set_led(LED3, 1);
+
     		// Supprimer les 10 premières valeurs
-    		//if (erreur_cancel == 10){
+    		if (erreur_cancel > 10){
+        	set_led(LED3, 1);
         	go_to_ball_handler();
-    		//}
-    		//else {
-    		//	++erreur_cancel;
-    		//}
-            //
+    		}
+    		else {
+    			++erreur_cancel;
+    		}
+
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
@@ -136,17 +136,45 @@ void move_center_handler(){
 
 void look_for_ball_handler(){
 
-	position = get_line_position();
 
-	if (position > IMAGE_BUFFER_SIZE/2*(1 - CORRECTION) && position < IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)){
-		current_mode = GO_TO_BALL;
-		dist_to_memorise = get_distTOF();
-	}
-	else {
+	right_motor_set_speed(SPEED_ROTATE);
+	left_motor_set_speed(-SPEED_ROTATE);
+	distance = get_distance_cm();
+	position = get_line_position();
+	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	position = get_line_position();
+	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	position = get_line_position();
+	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	position = get_line_position();
+	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	position = get_line_position();
+	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	position = get_line_position();
+	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
 		++angle_counter;
-		right_motor_set_speed(SPEED_ROTATE);
-		left_motor_set_speed(-SPEED_ROTATE);
+		distance = get_distance_cm();
+		position = get_line_position();
+		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
+
+	current_mode = GO_TO_BALL;
+	dist_to_memorise = get_distTOF();
+
+
+
+//	position = get_line_position();
+//	distance = get_distance_cm();
+//	if (position > IMAGE_BUFFER_SIZE/2*(1 - CORRECTION) && position < IMAGE_BUFFER_SIZE/2*(1 + CORRECTION) && distance < 50){
+//		current_mode = GO_TO_BALL;
+//		dist_to_memorise = get_distTOF();
+//	}
+//	else {
+//		++angle_counter;
+//		right_motor_set_speed(SPEED_ROTATE);
+//		left_motor_set_speed(-SPEED_ROTATE);
+//	}
 }
 
 
@@ -162,8 +190,10 @@ void go_to_ball_handler(){
 	distance = get_distance_cm();
 	position = get_line_position();
    if (dist_TOF > 50){
-		right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
-		left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+		//right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
+		//left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+		right_motor_set_speed(SPEED_FORWARD);
+		left_motor_set_speed(SPEED_FORWARD );
 	}
 
 	else if (dist_TOF < 50 ){

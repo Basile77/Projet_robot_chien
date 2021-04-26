@@ -47,7 +47,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		{ 
 			//the slope must at least be WIDTH_SLOPE wide and is compared
 		    //to the mean of the image
-		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean)
+		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean && buffer[i+WIDTH_SLOPE] > 150)
 		    {
 		        begin = i;
 		        stop = 1;
@@ -65,6 +65,13 @@ uint16_t extract_line_width(uint8_t *buffer){
 		        {
 		            end = i;
 		            stop = 1;
+		        //for(uint8_t j = begin; j<end; ++j){
+		        //	if (buffer[j] < mean){
+				//        end = 0;
+		        //	}
+		        //}
+
+
 		        }
 		        i++;
 		    }
@@ -72,11 +79,13 @@ uint16_t extract_line_width(uint8_t *buffer){
 		    if (i > IMAGE_BUFFER_SIZE || !end)
 		    {
 		        line_not_found = 1;
+				line_position = 0;
 		    }
 		}
 		else//if no begin was found
 		{
 		    line_not_found = 1;
+			line_position = 0;
 		}
 
 		//if a line too small has been detected, continues the search
@@ -85,7 +94,10 @@ uint16_t extract_line_width(uint8_t *buffer){
 			begin = 0;
 			end = 0;
 			stop = 0;
-			wrong_line = 1;
+
+			line_position = 0;
+			line_not_found = 1;
+			//wrong_line = 1;
 		}
 	}while(wrong_line);
 
@@ -93,7 +105,6 @@ uint16_t extract_line_width(uint8_t *buffer){
 		begin = 0;
 		end = 0;
 		width = last_width;
-		line_position = 0;
 	}else{
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
