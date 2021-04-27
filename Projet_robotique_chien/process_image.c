@@ -47,7 +47,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		{ 
 			//the slope must at least be WIDTH_SLOPE wide and is compared
 		    //to the mean of the image
-		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean && buffer[i+WIDTH_SLOPE] > 150)
+		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean && buffer[i+WIDTH_SLOPE] > 130)
 		    {
 		        begin = i;
 		        stop = 1;
@@ -65,11 +65,11 @@ uint16_t extract_line_width(uint8_t *buffer){
 		        {
 		            end = i;
 		            stop = 1;
-		        //for(uint8_t j = begin; j<end; ++j){
-		        //	if (buffer[j] < mean){
-				//        end = 0;
-		        //	}
-		        //}
+		        for(uint8_t j = begin; j<end; ++j){
+		        	if (buffer[j] < mean){
+				        end = 0;
+		        	}
+		        }
 
 
 		        }

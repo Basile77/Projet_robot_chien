@@ -17,7 +17,7 @@
 #define DIST_TO_CENTER		20
 #define SPEED_ROTATE		200
 #define SPEED_FORWARD		600
-#define CORRECTION 			0.05
+#define CORRECTION 			0.8
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(10/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
@@ -137,8 +137,8 @@ void move_center_handler(){
 void look_for_ball_handler(){
 
 
-	right_motor_set_speed(SPEED_ROTATE);
-	left_motor_set_speed(-SPEED_ROTATE);
+	right_motor_set_speed(SPEED_ROTATE*0.8);
+	left_motor_set_speed(-SPEED_ROTATE*0.8);
 	distance = get_distance_cm();
 	position = get_line_position();
 	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
@@ -151,12 +151,16 @@ void look_for_ball_handler(){
 	position = get_line_position();
 	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	position = get_line_position();
+	distance = get_distance_cm();
 	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-	while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
+
+	//while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
+	while (position == 0 || (distance == 50)){
 		++angle_counter;
 		distance = get_distance_cm();
 		position = get_line_position();
-		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+		chThdSleepMilliseconds(GENERAL_TIME_SLEEP*0.3);
+		set_led(LED7, 1);
 	}
 
 	current_mode = GO_TO_BALL;
@@ -190,10 +194,10 @@ void go_to_ball_handler(){
 	distance = get_distance_cm();
 	position = get_line_position();
    if (dist_TOF > 50){
-		//right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
-		//left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
-		right_motor_set_speed(SPEED_FORWARD);
-		left_motor_set_speed(SPEED_FORWARD );
+		right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
+		left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+		//right_motor_set_speed(SPEED_FORWARD);
+		//left_motor_set_speed(SPEED_FORWARD );
 	}
 
 	else if (dist_TOF < 50 ){
