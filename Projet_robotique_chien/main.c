@@ -96,28 +96,32 @@ int main(void)
     while (1) {
     	switch(current_main_state) {
     	case WAIT_FOR_COLOR:
-    		chprintf((BaseSequentialStream *)&SD3, "Current main State = WAIT_FOR_COLOR");
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = WAIT_FOR_COLOR, ");
     		wait_sem_audio();
     		current_main_state = RETURN_CENTER;
     		set_led(LED1, 1);
+    		chThdSleepMilliseconds(1000);
     		break;
     	case RETURN_CENTER:
-    		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER");
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER, ");
     		wait_sem_audio();
     		current_main_state = FIND_BALL;
     		set_led(LED3, 1);
+    		chThdSleepMilliseconds(1000);
     		break;
     	case FIND_BALL:
-    		chprintf((BaseSequentialStream *)&SD3, "Current main State = FIND_BALL");
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = FIND_BALL, ");
     		wait_sem_audio();
     		current_main_state = GET_BALL;
     		set_led(LED5, 1);
+    		chThdSleepMilliseconds(1000);
     		break;
     	case GET_BALL:
-    		chprintf((BaseSequentialStream *)&SD3, "Current main State = GET_BALL");
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = GET_BALL, ");
     		wait_sem_audio();
     		current_main_state = BACK_HOME;
     		set_led(LED7, 1);
+    		chThdSleepMilliseconds(1000);
     		break;
     	case BACK_HOME:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
@@ -127,6 +131,7 @@ int main(void)
     		set_led(LED3, 0);
     		set_led(LED5, 0);
     		set_led(LED7, 0);
+    		chThdSleepMilliseconds(1000);
     		break;
     	}
 
