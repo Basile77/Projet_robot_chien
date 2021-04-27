@@ -35,15 +35,6 @@ extern "C" {
 #define VERT					2
 #define ROUGE					3
 
-
-#define NO_COLOR				0
-#define BLEU					1
-#define VERT					2
-#define ROUGE					3
-
-
-
-
 /** Robot wide IPC bus. */
 extern messagebus_t bus;
 

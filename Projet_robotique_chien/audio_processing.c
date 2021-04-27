@@ -3,6 +3,7 @@
 #include <main.h>
 #include <usbcfg.h>
 #include <chprintf.h>
+#include <msgbus/messagebus.h>
 
 #include <motors.h>
 #include <audio/microphone.h>
@@ -18,6 +19,7 @@
 
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
+static BSEMAPHORE_DECL(sendAudioState_sem, TRUE);
 
 //2 times FFT_SIZE because these arrays contain complex numbers (real + imaginary)
 static float micLeft_cmplx_input[2 * FFT_SIZE];
@@ -37,7 +39,7 @@ static bool current_mic_state = WAIT_FOR_WHISTLE;
 #define MIN_FREQ		64	//1000Hz we don't analyze before this index to not use resources for nothing
 #define MAX_FREQ		128	//2000Hz we don't analyze after this index to not use resources for nothing
 
-#define FREQ_WHISTLE	96 //1500Hz
+#define FREQ_WHISTLE	80 // 96 = 1500Hz
 #define FREQ_WHISTLE_L	FREQ_WHISTLE-5 //FREQ_WHISTLE - 78Hz
 #define FREQ_WHISTLE_H	FREQ_WHISTLE+5 //FREQ_WHISTLE + 78Hz
 
@@ -59,11 +61,9 @@ void sound_remote(float* data){
 
 	//go forward
 	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H){
-		set_led(LED1, 1);
-		left_motor_set_speed(600);
-		right_motor_set_speed(600);
+		chBSemSignal(&sendAudioState_sem);
+		current_mic_state = NO_MEASURE;
 	} else {
-		set_led(LED1, 0);
 		left_motor_set_speed(0);
 		right_motor_set_speed(0);
 	}
@@ -86,7 +86,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	switch(current_mic_state) {
 	case NO_MEASURE:
 		//Do nothing
-
+		break;
 	case WAIT_FOR_WHISTLE:
 		/*
 		*
@@ -146,10 +146,10 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 			nb_samples = 0;
 
 			sound_remote(micLeft_output);
+
 		}
+		break;
 	}
-
-
 }
 
 void wait_send_to_computer(void){
@@ -184,4 +184,8 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 	else{
 		return NULL;
 	}
+}
+
+void wait_sem_audio(void) {
+	chBSemWait(&sendAudioState_sem);
 }

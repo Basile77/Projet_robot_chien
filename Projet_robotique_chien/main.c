@@ -15,6 +15,8 @@
 #include <sensors/proximity.h>
 #include <audio/microphone.h>
 #include <sensors/VL53L0X/VL53L0X.h>
+#include <msgbus/messagebus.h>
+#include <leds.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
@@ -86,14 +88,50 @@ int main(void)
     //it calls the callback given in parameter when samples are ready
     mic_start(&processAudioData);
 
-	uint8_t actual_color = NO_COLOR;
-
+//	uint8_t actual_color = NO_COLOR;
+	uint8_t current_main_state = WAIT_FOR_COLOR;
+	set_led(LED1, 0);
 
     /* Infinite loop. */
     while (1) {
-    	//waits 1 second
+    	switch(current_main_state) {
+    	case WAIT_FOR_COLOR:
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = WAIT_FOR_COLOR");
+    		wait_sem_audio();
+    		current_main_state = RETURN_CENTER;
+    		set_led(LED1, 1);
+    		break;
+    	case RETURN_CENTER:
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER");
+    		wait_sem_audio();
+    		current_main_state = FIND_BALL;
+    		set_led(LED3, 1);
+    		break;
+    	case FIND_BALL:
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = FIND_BALL");
+    		wait_sem_audio();
+    		current_main_state = GET_BALL;
+    		set_led(LED5, 1);
+    		break;
+    	case GET_BALL:
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = GET_BALL");
+    		wait_sem_audio();
+    		current_main_state = BACK_HOME;
+    		set_led(LED7, 1);
+    		break;
+    	case BACK_HOME:
+    		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
+    		wait_sem_audio();
+    		current_main_state = WAIT_FOR_COLOR;
+    		set_led(LED1, 0);
+    		set_led(LED3, 0);
+    		set_led(LED5, 0);
+    		set_led(LED7, 0);
+    		break;
+    	}
 
-    	chThdSleepMilliseconds(10000);
+
+    	chThdSleepMilliseconds(100);
     }
 }
 
