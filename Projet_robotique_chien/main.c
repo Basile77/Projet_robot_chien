@@ -73,7 +73,7 @@ int main(void)
 
 	//stars the threads for the pi regulator and the processing of the image
 	Deplacement_robot_start();
-	process_image_start();
+	//process_image_start();
 
 
 	// Start the thread to sense proximity

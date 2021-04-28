@@ -44,7 +44,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 		wrong_line = 0;
 		//search for a begin
 		while(stop == 0 && i < (IMAGE_BUFFER_SIZE - WIDTH_SLOPE))
-		{ 
+		{
 			//the slope must at least be WIDTH_SLOPE wide and is compared
 		    //to the mean of the image
 		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean && buffer[i+WIDTH_SLOPE] > 130)
@@ -58,18 +58,18 @@ uint16_t extract_line_width(uint8_t *buffer){
 		if (i < (IMAGE_BUFFER_SIZE - WIDTH_SLOPE) && begin)
 		{
 		    stop = 0;
-		    
+
 		    while(stop == 0 && i < IMAGE_BUFFER_SIZE)
 		    {
 		        if(buffer[i] < mean && buffer[i-WIDTH_SLOPE] > mean)
 		        {
 		            end = i;
 		            stop = 1;
-		        for(uint8_t j = begin; j<end; ++j){
-		        	if (buffer[j] < mean){
-				        end = 0;
-		        	}
-		        }
+		     //for(uint8_t l = begin; l<end; ++l){
+		     //	if (buffer[l] < mean){
+		     //       end = 0;
+		     //	}
+		     //}
 
 
 		        }
@@ -118,6 +118,49 @@ uint16_t extract_line_width(uint8_t *buffer){
 		return width;
 	}
 }
+
+
+//uint16_t extract_line_width(uint8_t *buffer){
+//
+//	uint32_t mean = 0;
+//	uint16_t start = 0;
+//	uint16_t i = 0;
+//	uint16_t end = 0;
+//	uint16_t width = 0;
+//
+//	for(uint16_t k = 0 ; k < IMAGE_BUFFER_SIZE ; k++){
+//		mean += buffer[k];
+//	}
+//	mean /= IMAGE_BUFFER_SIZE;
+//
+//	while(start == 0 && i < IMAGE_BUFFER_SIZE){
+//		if(buffer[i] < mean && buffer[i+5] > mean*1.8 && buffer[i+5] > 150){
+//			start = i;
+//		}
+//		++i;
+//	}
+//
+//	uint16_t j = start;
+//	if (j != 0){
+//		while(end == 0 && j < IMAGE_BUFFER_SIZE){
+//			if(buffer[j] > 1.8*mean && buffer[j+5] < mean && buffer[j+5] < 80){
+//				end = j;
+//			}
+//			++j;
+//		}
+//	}
+//
+//	width = end - start;
+//	if (width < 30){
+//		width = 0;
+//	}
+//
+//	line_position = (end + start)/2;
+//	return width;
+//
+//}
+
+
 
 uint8_t extract_color(uint8_t *buffer_vert, uint8_t *buffer_rouge, uint8_t *buffer_bleu){
 

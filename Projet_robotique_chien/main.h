@@ -30,11 +30,6 @@ extern "C" {
 #define GET_BALL			3		// Transition to next : ball reached
 #define BACK_HOME			4		// Transition to next : destination reached
 
-#define NO_COLOR				0
-#define BLEU					1
-#define VERT					2
-#define ROUGE					3
-
 
 #define NO_COLOR				0
 #define BLEU					1
