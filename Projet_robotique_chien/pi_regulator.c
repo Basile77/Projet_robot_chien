@@ -41,7 +41,7 @@
 #define GENERAL_TIME_SLEEP 100
 
 //Current mode of this thread
-static int8_t current_mode = MOVE_CENTER;
+static int8_t current_mode = NOT_MOVING;
 
 
 
@@ -66,6 +66,7 @@ void go_back_home_handler(void);
 void move_center_handler(void);
 
 int move(float distance, uint8_t counter);
+uint8_t actual_mode(uint8_t main_state);
 
 static BSEMAPHORE_DECL(sendMotoState_sem, TRUE);
 
@@ -86,21 +87,24 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
     		right_motor_set_speed(0);
     		left_motor_set_speed(0);
-
+    		current_mode = actual_mode(get_current_state());
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case MOVE_CENTER:
 
     		move_center_handler();
+    		chBSemSignal(&sendMotoState_sem);
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		current_mode = actual_mode(get_current_state());
     		break;
 
     	case LOOKING_FOR_BALL:
-    		set_led(LED1, 1);
-    		look_for_ball_handler();
 
+    		look_for_ball_handler();
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		current_mode = actual_mode(get_current_state());
     		break;
 
     	case GO_TO_BALL:
@@ -108,26 +112,31 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		// Supprimer les 10 premières valeurs
     		if (erreur_cancel > 10){
         	go_to_ball_handler();
+    		chBSemSignal(&sendMotoState_sem);
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		current_mode = actual_mode(get_current_state());
     		}
     		else {
     			++erreur_cancel;
         		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		}
-    		chBSemSignal(&sendMotoState_sem);
     		break;
 
     	case GO_BACK_CENTER:
-
+     		set_led(LED5, 0);
     		go_back_center_handler();
+    		set_led(LED1, 0);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-    		chBSemSignal(&sendMotoState_sem);
     		break;
 
     	case GO_BACK_HOME:
-    		set_led(LED7, 1);
+
+    		set_led(LED3, 0);
     		go_back_home_handler();
-    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+     		set_led(LED5, 0);
     		chBSemSignal(&sendMotoState_sem);
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		current_mode = actual_mode(get_current_state());
     		break;
 
         }
@@ -149,14 +158,13 @@ void move_center_handler(){
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
 
-	current_mode = LOOKING_FOR_BALL;
 
 }
 
 
 void look_for_ball_handler(){
 
-	set_led(LED5, 1);
+
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(-SPEED_FORWARD);
 	distance = get_distance_cm();
@@ -180,7 +188,7 @@ void look_for_ball_handler(){
 	++angle_counter;
 	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 
-	set_led(LED5, 0);
+
 	//while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
 	while (position == 0){
 
@@ -188,10 +196,9 @@ void look_for_ball_handler(){
 		distance = get_distance_cm();
 		position = get_line_position();
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-		set_led(LED5, 1);
+
 	}
 
-	current_mode = GO_TO_BALL;
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
 	dist_to_memorise = (float)get_distTOF()/10. - 5;
@@ -218,7 +225,7 @@ void go_to_ball_handler(){
 	dist_TOF = get_distTOF();
 
 	while (dist_TOF > 50){
-    	set_led(LED3, 1);
+
 		wait_sem_TOF();
 		dist_TOF = get_distTOF();
 		distance = get_distance_cm();
@@ -228,11 +235,10 @@ void go_to_ball_handler(){
 		right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
 		left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP*0.5);
-		set_led(LED7, 1);
+
 	}
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
-	current_mode = GO_BACK_CENTER;
 
 
 
@@ -267,12 +273,22 @@ void go_back_center_handler(void){
 	left_motor_set_speed(-SPEED_FORWARD);
 	++angle_counter_half_turn;
 	uint8_t destination_reached = 0 ;
+	move_center_counter = 0;
+
+//	while (!destination_reached){
+//		destination_reached = move(PERIMETER_EPUCK/2, angle_counter_half_turn);
+//		++angle_counter_half_turn;
+//		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+//	}
+//
 	while (!destination_reached){
-		destination_reached = move(PERIMETER_EPUCK/2, angle_counter_half_turn);
-		++angle_counter_half_turn;
+		destination_reached = move(DIST_TO_CENTER, move_center_counter);
+		++move_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
-	set_led(LED7, 1);
+
+
+
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(SPEED_FORWARD);
 	destination_reached = 0 ;
@@ -287,7 +303,6 @@ void go_back_center_handler(void){
 }
 
 void go_back_home_handler(void){
-	set_led(LED7, 0);
 
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(-SPEED_FORWARD);
@@ -314,10 +329,6 @@ void go_back_home_handler(void){
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
 
-	set_led(LED1, 0);
-	set_led(LED3, 0);
-	set_led(LED5, 0);
-	set_led(LED7, 0);
 
 	current_mode = NOT_MOVING;
 }
@@ -334,7 +345,26 @@ int move(float distance, uint8_t counter){
 	return 1;
 }
 
-
+uint8_t actual_mode(uint8_t main_state){
+	switch(main_state) {
+	case WAIT_FOR_COLOR:
+		return NOT_MOVING;
+		break;
+	case RETURN_CENTER:
+		return MOVE_CENTER;
+		break;
+	case FIND_BALL:
+		return LOOKING_FOR_BALL;
+		break;
+	case GET_BALL:
+		return GO_TO_BALL;
+		break;
+	case BACK_HOME:
+		return GO_BACK_CENTER;
+		break;
+	}
+	return NOT_MOVING;
+}
 
 void Deplacement_robot_start(void){
 	chThdCreateStatic(waDeplacement_robot, sizeof(waDeplacement_robot), NORMALPRIO, Deplacement_robot, NULL);
