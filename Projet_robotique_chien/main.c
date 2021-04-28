@@ -84,8 +84,7 @@ int main(void)
 	//proximityDetec_start();
 
 	// Start the thread to sense distance
-	//distanceDetec_start();
-
+	distanceDetec_start();
 
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
@@ -94,10 +93,6 @@ int main(void)
 //	uint8_t actual_color = NO_COLOR;
 	uint8_t current_main_state = WAIT_FOR_COLOR;
 	set_led(LED1, 0);
-
-    //starts the microphones processing thread.
-    //it calls the callback given in parameter when samples are ready
-    //mic_start(&processAudioData);
 
 	uint8_t actual_color = NO_COLOR;
 
@@ -115,28 +110,28 @@ int main(void)
     		break;
     	case RETURN_CENTER:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER, ");
-    		wait_sem_audio();
+    		wait_sem_motor();
     		current_main_state = FIND_BALL;
     		set_led(LED3, 1);
     		chThdSleepMilliseconds(1000);
     		break;
     	case FIND_BALL:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = FIND_BALL, ");
-    		wait_sem_audio();
+    		wait_sem_motor();
     		current_main_state = GET_BALL;
     		set_led(LED5, 1);
     		chThdSleepMilliseconds(1000);
     		break;
     	case GET_BALL:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = GET_BALL, ");
-    		wait_sem_audio();
+    		wait_sem_motor();
     		current_main_state = BACK_HOME;
     		set_led(LED7, 1);
     		chThdSleepMilliseconds(1000);
     		break;
     	case BACK_HOME:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
-    		wait_sem_audio();
+    		wait_sem_motor();
     		current_main_state = WAIT_FOR_COLOR;
     		set_led(LED1, 0);
     		set_led(LED3, 0);

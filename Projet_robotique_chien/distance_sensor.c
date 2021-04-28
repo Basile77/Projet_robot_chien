@@ -97,6 +97,6 @@ void distanceDetec_start(void) {
 	chThdCreateStatic(waDistanceDetec, sizeof(waDistanceDetec), NORMALPRIO, DistanceDetec, NULL);
 }
 
-void wait_sem(void) {
+void wait_sem_TOF(void) {
 	chBSemWait(&distance_info_sem);
 }
