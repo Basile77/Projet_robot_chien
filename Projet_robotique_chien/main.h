@@ -31,12 +31,11 @@ extern "C" {
 #define BACK_HOME			4		// Transition to next : destination reached
 
 
+
 #define NO_COLOR				0
 #define BLEU					1
 #define VERT					2
 #define ROUGE					3
-
-
 
 
 /** Robot wide IPC bus. */

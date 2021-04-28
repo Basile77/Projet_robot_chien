@@ -120,6 +120,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 }
 
 
+
 //uint16_t extract_line_width(uint8_t *buffer){
 //
 //	uint32_t mean = 0;

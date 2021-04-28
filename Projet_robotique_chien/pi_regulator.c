@@ -12,6 +12,7 @@
 #include <distance_sensor.h>
 
 #define TAILLE_BUFFER 		10
+<<<<<<< HEAD
 #define DIST_INIT_TOF		500.0f
 #define DIST_INIT 			50
 #define DIST_TO_CENTER		20.0f
@@ -21,10 +22,21 @@
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(10.0f/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
+
+#define DIST_INIT_TOF		500
+#define DIST_INIT 			50
+#define SPEED_ROTATE		400
+#define SPEED_FORWARD		600
+#define CORRECTION 			0.05
+#define WHEEL_PERIMETER 13 // [cm]
+#define NSTEP_ONE_TURN 1000 // number of step for 1 turn of the motor
+#define TIME_CONST			1000/100/SPEED_FORWARD/WHEEL_PERIMETER*NSTEP_ONE_TURN
 //defini 2 fois ATTENTION
 #define PI                  3.1415926536f
 #define WHEEL_DISTANCE      5.35f    //cm
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
+
+
 
 //Different possible mode
 
@@ -39,10 +51,29 @@
 
 //Current mode of this thread
 static int8_t current_mode = MOVE_CENTER;
+static int8_t current_mode = LOOKING_FOR_BALL;
+>>>>>>> a0f74c93d9edc8f4bd366a21f914b044b751e7bc
 
 
 
 //Static parameters
+
+
+static int16_t position = 0;
+static float distance = DIST_INIT;
+static uint16_t dist_TOF = DIST_INIT_TOF;
+static uint16_t dist_to_memorise = DIST_INIT_TOF;
+static uint8_t angle_counter = 0;
+static uint8_t angle_counter_half_turn = TIME_CONST*PERIMETER_EPUCK/4;
+static uint8_t speed_counter = 0;
+
+//handler for different mode
+
+void look_for_ball_handler(void);
+void go_to_ball_handler(void);
+void go_back_center_handler(void);
+void go_back_home_handler(void);
+
 
 static int16_t position = 0;
 static float distance = DIST_INIT;
@@ -78,18 +109,27 @@ static THD_FUNCTION(Deplacement_robot, arg) {
         switch (current_mode){
 
     	case NOT_MOVING:
+
     		right_motor_set_speed(0);
     		left_motor_set_speed(0);
+
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case MOVE_CENTER:
+
     		move_center_handler();
     		break;
 
     	case LOOKING_FOR_BALL:
     		set_led(LED1, 1);
     		look_for_ball_handler();
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
+
+    	case LOOKING_FOR_BALL:
+    		look_for_ball_handler();
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case GO_TO_BALL:
@@ -106,6 +146,10 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
     	case GO_BACK_CENTER:
     		set_led(LED5, 1);
+
+
+    	case GO_BACK_CENTER:
+
     		go_back_center_handler();
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
@@ -322,6 +366,79 @@ int move(float distance, uint8_t counter){
 
 
 
+
+void look_for_ball_handler(){
+
+	position = get_line_position();
+
+	if (position > IMAGE_BUFFER_SIZE/2*(1 - CORRECTION) && position < IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)){
+		current_mode = GO_TO_BALL;
+		dist_to_memorise = get_distTOF();
+	}
+	else {
+		++angle_counter;
+		right_motor_set_speed(SPEED_ROTATE);
+		left_motor_set_speed(-SPEED_ROTATE);
+	}
+}
+
+
+
+void go_to_ball_handler(){
+	chprintf((BaseSequentialStream *)&SD3, "Distance moyenne = %d mm \n",  dist_TOF);
+	wait_sem();
+	chprintf((BaseSequentialStream *)&SD3, "Distance 1= %d mm \n", dist_TOF);
+	dist_TOF = get_distTOF();
+
+
+	chprintf((BaseSequentialStream *)&SD3, "DistanceTOF = %d mm \n", dist_TOF);
+	distance = get_distance_cm();
+	position = get_line_position();
+   if (dist_TOF > 50){
+		right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
+		left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+	}
+
+	else if (dist_TOF < 50 ){
+		right_motor_set_speed(0);
+		left_motor_set_speed(0);
+		current_mode = GO_BACK_HOME;
+		}
+}
+
+
+void go_back_center_handler(void){
+
+	if (angle_counter_half_turn > 0){
+		right_motor_set_speed(SPEED_ROTATE);
+		left_motor_set_speed(-SPEED_ROTATE);
+		--angle_counter_half_turn;
+	}
+
+	else if (speed_counter < dist_to_memorise*TIME_CONST){
+		right_motor_set_speed(SPEED_FORWARD);
+		left_motor_set_speed(SPEED_FORWARD);
+		speed_counter++;
+	}
+
+	if (speed_counter == (dist_to_memorise*TIME_CONST)){
+		current_mode = GO_BACK_HOME;
+	}
+}
+
+void go_back_home_handler(void){
+
+	if (angle_counter + TIME_CONST*PERIMETER_EPUCK/4 > 0){
+		right_motor_set_speed(SPEED_ROTATE);
+		left_motor_set_speed(-SPEED_ROTATE);
+		--angle_counter;
+	}
+
+	if (angle_counter + TIME_CONST*PERIMETER_EPUCK/4 == 0){
+		right_motor_set_speed(0);
+		left_motor_set_speed(0);
+	}
+}
 
 void Deplacement_robot_start(void){
 	chThdCreateStatic(waDeplacement_robot, sizeof(waDeplacement_robot), NORMALPRIO, Deplacement_robot, NULL);
