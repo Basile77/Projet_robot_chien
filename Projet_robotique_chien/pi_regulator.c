@@ -12,21 +12,22 @@
 #include <distance_sensor.h>
 
 #define TAILLE_BUFFER 		10
-#define DIST_INIT_TOF		500.0f
+#define DIST_INIT_TOF		500
 #define DIST_INIT 			50
-#define DIST_TO_CENTER		20.0f
+#define DIST_TO_CENTER		20
 #define SPEED_ROTATE		200
 #define SPEED_FORWARD		600
 #define CORRECTION 			0.8
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(10.0f/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
+//#define TIME_CONST			(10.0f/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 
 //defini 2 fois ATTENTION
-#define PI                  3.1415926536f
+#define PI                  3.1415f
 #define WHEEL_DISTANCE      5.35f    //cm
-#define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
-
+//#define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
+#define PERIMETER_EPUCK     8
 
 
 //Different possible mode
@@ -57,6 +58,10 @@ static uint16_t angle_counter = 0;
 static uint16_t angle_counter_half_turn = 0;
 static uint16_t go_back_center_counter = 0;
 
+
+static uint32_t move_counter = 0;
+
+
 //handler for different mode
 
 void look_for_ball_handler(void);
@@ -65,7 +70,7 @@ void go_back_center_handler(void);
 void go_back_home_handler(void);
 void move_center_handler(void);
 
-int move(float distance, uint8_t counter);
+uint8_t move(uint8_t nb_step , uint16_t counter);
 uint8_t actual_mode(uint8_t main_state);
 
 static BSEMAPHORE_DECL(sendMotoState_sem, TRUE);
@@ -153,7 +158,8 @@ void move_center_handler(){
 
 
 	while (!destination_reached){
-		destination_reached = move(DIST_TO_CENTER, move_center_counter);
+		uint8_t nb_step = (int)DIST_TO_CENTER*TIME_CONST;
+		destination_reached = move(nb_step, move_center_counter);
 		++move_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
@@ -271,21 +277,23 @@ void go_back_center_handler(void){
 
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(-SPEED_FORWARD);
-	++angle_counter_half_turn;
+	++move_counter;
 	uint8_t destination_reached = 0 ;
+	move_counter = 0;
 	move_center_counter = 0;
 
-//	while (!destination_reached){
-//		destination_reached = move(PERIMETER_EPUCK/2, angle_counter_half_turn);
-//		++angle_counter_half_turn;
-//		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-//	}
-//
 	while (!destination_reached){
-		destination_reached = move(DIST_TO_CENTER, move_center_counter);
-		++move_center_counter;
+		uint8_t nb_step = (uint8_t)(DIST_TO_CENTER*TIME_CONST);
+		destination_reached = move(nb_step, move_counter);
+		++move_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
+
+//	while (!destination_reached){
+//		destination_reached = move(DIST_TO_CENTER, move_center_counter);
+//		++move_center_counter;
+//		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+//	}
 
 
 
@@ -294,7 +302,8 @@ void go_back_center_handler(void){
 	destination_reached = 0 ;
 
 	while (!destination_reached){
-		destination_reached = move(dist_to_memorise, go_back_center_counter);
+		uint8_t nb_step = (int)(dist_to_memorise*TIME_CONST);
+		destination_reached = move(nb_step, go_back_center_counter);
 		++go_back_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
@@ -313,7 +322,8 @@ void go_back_home_handler(void){
 	++angle_counter;
 	while (!destination_reached){
 		chprintf((BaseSequentialStream *)&SD3, "counter_exit_angle = %d mm \n", angle_counter);
-		destination_reached = move(distace_to_face_exit, angle_counter);
+		uint8_t nb_step = (int)(distace_to_face_exit*TIME_CONST);
+		destination_reached = move(nb_step, angle_counter);
 		++angle_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
@@ -324,7 +334,8 @@ void go_back_home_handler(void){
 	destination_reached = 0;
 	move_center_counter = 0;
 	while (!destination_reached){
-		destination_reached = move(DIST_TO_CENTER, move_center_counter);
+		uint8_t nb_step = (int)(DIST_TO_CENTER*TIME_CONST);
+		destination_reached = move(nb_step, move_center_counter);
 		++move_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
@@ -334,16 +345,27 @@ void go_back_home_handler(void){
 }
 
 
-int move(float distance, uint8_t counter){
+uint8_t move(uint8_t nb_step , uint16_t counter){
 
-	float nb_step = distance*TIME_CONST;
-	if(counter < (int)nb_step){
+
+	if(counter < nb_step){
 		chprintf((BaseSequentialStream *)&SD3, "counter = %d mm \n", counter);
 		chprintf((BaseSequentialStream *)&SD3, "nb step total = %d mm \n", (int)nb_step);
 		return 0;
 	}
 	return 1;
 }
+
+//uint8_t move(float distance, uint16_t counter){
+//
+//	float nb_step = distance*TIME_CONST;
+//	if(counter < (int)nb_step){
+//		chprintf((BaseSequentialStream *)&SD3, "counter = %d mm \n", counter);
+//		chprintf((BaseSequentialStream *)&SD3, "nb step total = %d mm \n", (int)nb_step);
+//		return 0;
+//	}
+//	return 1;
+//}
 
 uint8_t actual_mode(uint8_t main_state){
 	switch(main_state) {
