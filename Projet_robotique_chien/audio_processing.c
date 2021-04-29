@@ -42,7 +42,7 @@ static bool current_mic_state = WAIT_FOR_WHISTLE;
 #define MIN_FREQ		64	//1000Hz we don't analyze before this index to not use resources for nothing
 #define MAX_FREQ		128	//2000Hz we don't analyze after this index to not use resources for nothing
 
-#define FREQ_WHISTLE	80 // 96 = 1500Hz
+#define FREQ_WHISTLE	96 // 96 = 1500Hz
 #define FREQ_WHISTLE_L	FREQ_WHISTLE-5 //FREQ_WHISTLE - 78Hz
 #define FREQ_WHISTLE_H	FREQ_WHISTLE+5 //FREQ_WHISTLE + 78Hz
 

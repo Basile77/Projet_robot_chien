@@ -26,8 +26,8 @@
 //defini 2 fois ATTENTION
 #define PI                  3.1415f
 #define WHEEL_DISTANCE      5.35f    //cm
-//#define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
-#define PERIMETER_EPUCK     8
+#define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
+
 
 
 //Different possible mode
@@ -75,7 +75,7 @@ uint8_t actual_mode(uint8_t main_state);
 
 static BSEMAPHORE_DECL(sendMotoState_sem, TRUE);
 
-static THD_WORKING_AREA(waDeplacement_robot, 256);
+static THD_WORKING_AREA(waDeplacement_robot, 512);
 static THD_FUNCTION(Deplacement_robot, arg) {
 
     chRegSetThreadName(__FUNCTION__);
@@ -280,10 +280,9 @@ void go_back_center_handler(void){
 	++move_counter;
 	uint8_t destination_reached = 0 ;
 	move_counter = 0;
-	move_center_counter = 0;
 
 	while (!destination_reached){
-		uint8_t nb_step = (uint8_t)(DIST_TO_CENTER*TIME_CONST);
+		uint8_t nb_step = (uint8_t)(PERIMETER_EPUCK/2*TIME_CONST);
 		destination_reached = move(nb_step, move_counter);
 		++move_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
