@@ -5,6 +5,8 @@
 
 #include <main.h>
 #include <camera/po8030.h>
+#include <leds.h>
+#include <audio_processing.h>
 
 #include <process_image.h>
 
@@ -14,9 +16,13 @@
 #define CAPTURING			0
 #define NOT_CAPTURING		1
 
+#define COLOR_FULL_SCALE 	256
+#define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE/2
+
 static float distance_cm = 10;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 static uint8_t color_memory = NO_COLOR;
+static bool process_image_current_state = MEMORIZE_COLOR;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -120,69 +126,39 @@ uint16_t extract_line_width(uint8_t *buffer){
 }
 
 
-
-//uint16_t extract_line_width(uint8_t *buffer){
-//
-//	uint32_t mean = 0;
-//	uint16_t start = 0;
-//	uint16_t i = 0;
-//	uint16_t end = 0;
-//	uint16_t width = 0;
-//
-//	for(uint16_t k = 0 ; k < IMAGE_BUFFER_SIZE ; k++){
-//		mean += buffer[k];
-//	}
-//	mean /= IMAGE_BUFFER_SIZE;
-//
-//	while(start == 0 && i < IMAGE_BUFFER_SIZE){
-//		if(buffer[i] < mean && buffer[i+5] > mean*1.8 && buffer[i+5] > 150){
-//			start = i;
-//		}
-//		++i;
-//	}
-//
-//	uint16_t j = start;
-//	if (j != 0){
-//		while(end == 0 && j < IMAGE_BUFFER_SIZE){
-//			if(buffer[j] > 1.8*mean && buffer[j+5] < mean && buffer[j+5] < 80){
-//				end = j;
-//			}
-//			++j;
-//		}
-//	}
-//
-//	width = end - start;
-//	if (width < 30){
-//		width = 0;
-//	}
-//
-//	line_position = (end + start)/2;
-//	return width;
-//
-//}
-
-
-
-uint8_t extract_color(uint8_t *buffer_vert, uint8_t *buffer_rouge, uint8_t *buffer_bleu){
-
-	uint16_t taille_vert = extract_line_width(buffer_vert);
-	uint16_t taille_bleu = extract_line_width(buffer_bleu);
-	uint16_t taille_rouge = extract_line_width(buffer_rouge);
-
-	if (taille_vert > 0 && (buffer_vert[IMAGE_BUFFER_SIZE/2] > buffer_rouge[IMAGE_BUFFER_SIZE/2])
-						&& (buffer_vert[IMAGE_BUFFER_SIZE/2] > buffer_bleu[IMAGE_BUFFER_SIZE/2])){
-		return VERT;
+int mean_buff(uint8_t *buffer) {
+	int mean = 0;
+	for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+		mean += buffer[i];
 	}
+	mean /= IMAGE_BUFFER_SIZE;
+	return mean;
+}
 
-	if (taille_bleu > 0 && (buffer_bleu[IMAGE_BUFFER_SIZE/2] > buffer_rouge[IMAGE_BUFFER_SIZE/2])
-						&& (buffer_bleu[IMAGE_BUFFER_SIZE/2] > buffer_vert[IMAGE_BUFFER_SIZE/2])){
-		return BLEU;
-	}
+uint8_t extract_color(uint8_t *buffer_green, uint8_t *buffer_red, uint8_t *buffer_blue){
 
-	if (taille_rouge > 0 && (buffer_rouge[IMAGE_BUFFER_SIZE/2] > buffer_vert[IMAGE_BUFFER_SIZE/2])
-						&& (buffer_rouge[IMAGE_BUFFER_SIZE/2] > buffer_bleu[IMAGE_BUFFER_SIZE/2])){
-		return ROUGE;
+	if ((buffer_green[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
+			(buffer_red[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
+			(buffer_blue[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD)) {
+		set_rgb_led(LED2, 0, RGB_MAX_INTENSITY, 0);
+//		chprintf((BaseSequentialStream *)&SD3, "GREEN, ");
+		return GREEN;
+	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
+			(buffer_red[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
+			(buffer_blue[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD)) {
+		set_rgb_led(LED2, RGB_MAX_INTENSITY, 0, 0);
+//		chprintf((BaseSequentialStream *)&SD3, "RED, ");
+		return RED;
+	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
+			(buffer_red[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
+			(buffer_blue[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD)) {
+		set_rgb_led(LED2, 0, 0, RGB_MAX_INTENSITY);
+//		chprintf((BaseSequentialStream *)&SD3, "BLUE, ");
+		return BLUE;
 	}
+//	 chprintf((BaseSequentialStream *)&SD3, "NO COLOR, GREEN = %d, RED = %d, BLUE = %d",
+//			buffer_green[IMAGE_BUFFER_SIZE/2], buffer_red[IMAGE_BUFFER_SIZE/2],
+//			buffer_blue([IMAGE_BUFFER_SIZE/2]));
 
 	return NO_COLOR;
 }
@@ -209,22 +185,23 @@ static THD_FUNCTION(CaptureImage, arg) {
     }
 }
 
-
-static THD_WORKING_AREA(waProcessImage, 1024);
+static THD_WORKING_AREA(waProcessImage, 2048);
 static THD_FUNCTION(ProcessImage, arg) {
 
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
+
+
 	uint8_t *img_buff_ptr;
 
-	uint8_t image_red[IMAGE_BUFFER_SIZE] = {0};
-	uint8_t image_blue[IMAGE_BUFFER_SIZE] = {0};
-	uint8_t image_green[IMAGE_BUFFER_SIZE] = {0};
+	static uint8_t image_red[IMAGE_BUFFER_SIZE] = {0};
+	static uint8_t image_blue[IMAGE_BUFFER_SIZE] = {0};
+	static uint8_t image_green[IMAGE_BUFFER_SIZE] = {0};
 
-	uint16_t lineWidth = 0;
+	static uint16_t lineWidth = 0;
 
-	bool send_to_computer = true;
+	static bool send_to_computer = true;
 
     while(1){
     	//waits until an image has been captured
@@ -232,35 +209,48 @@ static THD_FUNCTION(ProcessImage, arg) {
 		//gets the pointer to the array filled with the last image in RGB565    
 		img_buff_ptr = dcmi_get_last_image_ptr();
 
-		//Extracts only the red pixels
+		//Extracts red, blue and green colors
 		for(uint16_t i = 0 ; i < (2 * IMAGE_BUFFER_SIZE) ; i+=2){
-			//extracts first 5bits of the first byte
-			//takes nothing from the second byte
+
 			image_red[i/2] = ((uint8_t)img_buff_ptr[i]&0xF8);
 			image_blue[i/2] = (((uint8_t)img_buff_ptr[i+1]&0x1F)<<3);
 			image_green[i/2] = ((((uint8_t)img_buff_ptr[i]&0x07)<<5) + (((uint8_t)img_buff_ptr[i+1]&0xE0)>>3));
 
 		}
-
-
-		//color_memory = extract_color(image_green, image_red, image_blue);
-
-
-		//search for a line in the image and gets its width in pixels
-		lineWidth = extract_line_width(image_green);
-
-
-		//converts the width into a distance between the robot and the camera
-		if(lineWidth){
-			distance_cm = PXTOCM/lineWidth;
+		if (get_current_main_state() != WAIT_FOR_COLOR) {
+			process_image_current_state = FIND_COLOR;
+		} else {
+			process_image_current_state = MEMORIZE_COLOR;
 		}
-		else{distance_cm = 50;}
-		if(send_to_computer){
-			//sends to the computer the image
-			SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);
+
+		switch(process_image_current_state) {
+		case MEMORIZE_COLOR:
+//			uint8_t shown_color = extract_color(image_green, image_red, image_blue);
+			if (extract_color(image_green, image_red, image_blue) != NO_COLOR) {
+				color_memory = extract_color(image_green, image_red, image_blue);
+			}
+			break;
+		case FIND_COLOR:
+			//color_memory = extract_color(image_green, image_red, image_blue);
+
+
+			//search for a line in the image and gets its width in pixels
+			lineWidth = extract_line_width(image_green);
+
+			//converts the width into a distance between the robot and the camera
+			if(lineWidth){
+				distance_cm = PXTOCM/lineWidth;
+			}
+			else{distance_cm = 50;}
+			if(send_to_computer){
+				//sends to the computer the image
+				SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);
+			}
+			//invert the bool
+			send_to_computer = !send_to_computer;
+
+			break;
 		}
-		//invert the bool
-		send_to_computer = !send_to_computer;
     }
 }
 
@@ -272,7 +262,7 @@ uint16_t get_line_position(void){
 	return line_position;
 }
 
-uint8_t get_couleur(void){
+uint8_t get_color(void){
 	return color_memory;
 }
 

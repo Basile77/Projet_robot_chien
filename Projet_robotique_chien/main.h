@@ -33,9 +33,10 @@ extern "C" {
 
 
 #define NO_COLOR				0
-#define BLEU					1
-#define VERT					2
-#define ROUGE					3
+#define BLUE					1
+#define GREEN					2
+#define RED						3
+
 
 
 /** Robot wide IPC bus. */
@@ -44,7 +45,8 @@ extern messagebus_t bus;
 extern parameter_namespace_t parameter_root;
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size);
-uint8_t get_current_state(void);
+
+uint8_t get_current_main_state(void);
 
 #ifdef __cplusplus
 }

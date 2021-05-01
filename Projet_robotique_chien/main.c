@@ -57,7 +57,7 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
-    //proximity_start();
+    proximity_start();
 
     // Init the communication bus
     messagebus_init(&bus, &bus_lock, &bus_condvar);
@@ -77,6 +77,8 @@ int main(void)
 	//start the time-of-flight sensor
 	VL53L0X_start();
 
+	spi_comm_start();
+
 	//stars the threads for the pi regulator and the processing of the image
 
 	Deplacement_robot_start();
@@ -93,15 +95,13 @@ int main(void)
 
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
-    mic_start(&processAudioData);
+     mic_start(&processAudioData);
 
-//	uint8_t actual_color = NO_COLOR;
 
-    spi_comm_start();
 
 	set_led(LED1, 0);
 
-	uint8_t actual_color = NO_COLOR;
+	uint8_t current_color = get_color();
 
 
     /* Infinite loop. */
@@ -112,14 +112,16 @@ int main(void)
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = WAIT_FOR_COLOR, ");
     		wait_sem_audio();
 
-
-
+    		chprintf((BaseSequentialStream *)&SD3, "Current color = %d", current_color);
     		current_main_state = RETURN_CENTER;
+    		set_led(LED1, 1);
     		break;
     	case RETURN_CENTER:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER, ");
     		wait_sem_motor();
     		current_main_state = FIND_BALL;
+
+    		set_led(LED3, 1);
     		break;
     	case FIND_BALL:
     		set_rgb_led(LED4, 250, 50, 160);
@@ -151,7 +153,8 @@ int main(void)
     }
 }
 
-uint8_t get_current_state(void){
+
+uint8_t get_current_main_state(void){
 	return current_main_state;
 }
 

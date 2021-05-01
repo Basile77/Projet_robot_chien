@@ -17,13 +17,13 @@
 #define DIST_TO_CENTER		20
 #define SPEED_ROTATE		200
 #define SPEED_FORWARD		600
+<<<<<<< HEAD
 #define CORRECTION 			0.4
 #define CORRECTION_BIS 		0.2
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(1000.0f/GENERAL_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 #define TIME_CONST_SLOW			(1000.0f/GENERAL_TIME_SLEEP/(SPEED_FORWARD*0.2)*NSTEP_ONE_TURN/WHEEL_PERIMETER)
-//#define TIME_CONST			(10.0f/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 
 //defini 2 fois ATTENTION
 #define PI                  3.1415f
@@ -57,6 +57,7 @@ static uint16_t dist_TOF = DIST_INIT_TOF;
 static float dist_to_memorise = DIST_INIT_TOF;
 static uint16_t dist_to_memorise_2 = 20.0f;
 static uint32_t move_center_counter = 0;
+
 static uint32_t angle_counter = 0;
 static uint32_t angle_counter_2 = 0;
 static uint16_t angle_counter_alignement = 0;
@@ -95,7 +96,9 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
     	case NOT_MOVING:
 
-    		current_mode = actual_mode(get_current_state());
+    		right_motor_set_speed(0);
+    		left_motor_set_speed(0);
+    		current_mode = actual_mode(get_current_main_state());
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
@@ -104,7 +107,8 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		move_center_handler();
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-    		current_mode = actual_mode(get_current_state());
+
+    		current_mode = actual_mode(get_current_main_state());
     		break;
 
     	case LOOKING_FOR_BALL:
@@ -112,7 +116,8 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		look_for_ball_handler();
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-    		current_mode = actual_mode(get_current_state());
+
+    		current_mode = actual_mode(get_current_main_state());
     		break;
 
     	case GO_TO_BALL:
@@ -122,7 +127,8 @@ static THD_FUNCTION(Deplacement_robot, arg) {
         	go_to_ball_handler();
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-    		current_mode = actual_mode(get_current_state());
+
+    		current_mode = actual_mode(get_current_main_state());
     		}
     		else {
     			++erreur_cancel;
@@ -144,9 +150,12 @@ static THD_FUNCTION(Deplacement_robot, arg) {
      		set_led(LED5, 0);
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-    		current_mode = actual_mode(get_current_state());
+
+
     		right_motor_set_speed(0);
     		left_motor_set_speed(0);
+		current_mode = actual_mode(get_current_main_state());
+
     		break;
 
         }
@@ -154,6 +163,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     }
 }
 void move_center_handler(){
+
 
 
 	right_motor_set_speed(-SPEED_FORWARD);
@@ -168,7 +178,6 @@ void move_center_handler(){
 		++move_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
-
 
 }
 
@@ -382,13 +391,13 @@ void go_back_center_handler(void){
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(SPEED_FORWARD);
 	destination_reached = 0 ;
-
 	while (!destination_reached){
 		uint8_t nb_step = (int)(dist_to_memorise*TIME_CONST);
 		destination_reached = move(nb_step, go_back_center_counter);
 		++go_back_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
+
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
 	current_mode = GO_BACK_HOME;
@@ -396,6 +405,7 @@ void go_back_center_handler(void){
 
 
 void go_back_home_handler(void){
+
 
 	right_motor_set_speed(SPEED_FORWARD*0.2);
 	left_motor_set_speed(-SPEED_FORWARD*0.2);
