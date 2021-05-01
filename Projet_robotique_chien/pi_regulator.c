@@ -17,7 +17,6 @@
 #define DIST_TO_CENTER		20
 #define SPEED_ROTATE		200
 #define SPEED_FORWARD		600
-<<<<<<< HEAD
 #define CORRECTION 			0.4
 #define CORRECTION_BIS 		0.2
 #define WHEEL_PERIMETER		13.0f // [cm]
