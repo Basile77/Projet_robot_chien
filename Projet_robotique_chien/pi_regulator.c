@@ -17,10 +17,12 @@
 #define DIST_TO_CENTER		20
 #define SPEED_ROTATE		200
 #define SPEED_FORWARD		600
-#define CORRECTION 			0.8
+#define CORRECTION 			0.4
+#define CORRECTION_BIS 		0.2
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
-#define TIME_CONST			(10.0f/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
+#define TIME_CONST			(1000.0f/GENERAL_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
+#define TIME_CONST_SLOW			(1000.0f/GENERAL_TIME_SLEEP/(SPEED_FORWARD*0.2)*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 //#define TIME_CONST			(10.0f/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 
 //defini 2 fois ATTENTION
@@ -40,6 +42,7 @@
 #define GO_BACK_HOME		5
 
 #define GENERAL_TIME_SLEEP 100
+#define LOOK_BALL_TIME_SLEEP 5
 
 //Current mode of this thread
 static int8_t current_mode = NOT_MOVING;
@@ -54,8 +57,9 @@ static uint16_t dist_TOF = DIST_INIT_TOF;
 static float dist_to_memorise = DIST_INIT_TOF;
 static uint16_t dist_to_memorise_2 = 20.0f;
 static uint32_t move_center_counter = 0;
-static uint16_t angle_counter = 0;
-static uint16_t angle_counter_half_turn = 0;
+static uint32_t angle_counter = 0;
+static uint32_t angle_counter_2 = 0;
+static uint16_t angle_counter_alignement = 0;
 static uint16_t go_back_center_counter = 0;
 
 
@@ -82,16 +86,15 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     (void)arg;
 
 	uint8_t erreur_cancel = 0;
+	right_motor_set_speed(0);
+	left_motor_set_speed(0);
 
     while(1){
-    	chprintf((BaseSequentialStream *)&SD3, "TEST= %d mm \n", dist_TOF);
 
         switch (current_mode){
 
     	case NOT_MOVING:
 
-    		right_motor_set_speed(0);
-    		left_motor_set_speed(0);
     		current_mode = actual_mode(get_current_state());
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
@@ -142,6 +145,8 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		current_mode = actual_mode(get_current_state());
+    		right_motor_set_speed(0);
+    		left_motor_set_speed(0);
     		break;
 
         }
@@ -154,7 +159,7 @@ void move_center_handler(){
 	right_motor_set_speed(-SPEED_FORWARD);
 	left_motor_set_speed(-SPEED_FORWARD);
 	uint8_t destination_reached = 0 ;
-
+	move_center_counter = 0;
 
 
 	while (!destination_reached){
@@ -170,44 +175,109 @@ void move_center_handler(){
 
 void look_for_ball_handler(){
 
+	angle_counter = 0;
+	angle_counter_2 = 0;
 
-	right_motor_set_speed(SPEED_FORWARD);
-	left_motor_set_speed(-SPEED_FORWARD);
+	right_motor_set_speed(SPEED_FORWARD*0.2);
+	left_motor_set_speed(-SPEED_FORWARD*0.2);
+	set_led(LED3, 1);
 	distance = get_distance_cm();
 	position = get_line_position();
-	++angle_counter;
-	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-	++angle_counter;
+	angle_counter += SPEED_FORWARD*0.2;
+	++angle_counter_2;
+	chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
+	angle_counter += SPEED_FORWARD*0.2;
+	++angle_counter_2;
 	position = get_line_position();
-	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-	++angle_counter;
+	chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
+	angle_counter += SPEED_FORWARD*0.2;
+	++angle_counter_2;
 	position = get_line_position();
-	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-	++angle_counter;
+	chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
+	angle_counter += SPEED_FORWARD*0.2;
+	++angle_counter_2;
 	position = get_line_position();
-	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
 	position = get_line_position();
-	++angle_counter;
-	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	angle_counter += SPEED_FORWARD*0.2;
+	++angle_counter_2;
+	chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
 	position = get_line_position();
 	distance = get_distance_cm();
-	++angle_counter;
-	chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+	angle_counter += SPEED_FORWARD*0.2;
+	++angle_counter_2;
+	chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
 
+	chprintf((BaseSequentialStream *)&SD3, "angle_counter = %d mm \n\n\n\n\n\n\n\n", angle_counter);
+	while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
+	//while (position == 0){
 
-	//while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
-	while (position == 0){
-
-		++angle_counter;
+		angle_counter += SPEED_FORWARD*0.2;
+		++angle_counter_2;
 		distance = get_distance_cm();
 		position = get_line_position();
-		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+		chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
 
 	}
 
+	chprintf((BaseSequentialStream *)&SD3, "angle_counter = %d mm \n\n\n\n\n\n\n\n", angle_counter);
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
-	dist_to_memorise = (float)get_distTOF()/10. - 5;
+
+	chThdSleepMilliseconds(GENERAL_TIME_SLEEP*10);
+	set_led(LED3, 0);
+
+	position = get_line_position();
+	distance = get_distance_cm();
+
+//	uint8_t destination_reached = 0 ;
+//
+//	if (position < IMAGE_BUFFER_SIZE/2){
+//		right_motor_set_speed(SPEED_FORWARD*0.1);
+//		left_motor_set_speed(-SPEED_FORWARD*0.1);
+//	}
+//	else {
+//		right_motor_set_speed(-SPEED_FORWARD*0.1);
+//		left_motor_set_speed(SPEED_FORWARD*0.1);
+//	}
+//
+//	while (!destination_reached){
+//
+//		++angle_counter;
+//		distance = get_distance_cm();
+//		position = get_line_position();
+//		if ((position > IMAGE_BUFFER_SIZE/2*(1 - CORRECTION_BIS)) && (position < IMAGE_BUFFER_SIZE/2*(1 + CORRECTION_BIS)) && (distance < 50)){
+//			chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP*0.5);
+//			destination_reached = 1;
+//		}
+//	}
+	right_motor_set_speed(0);
+	left_motor_set_speed(0);
+
+//	uint16_t taille_ligne = PXTOCM/distance;
+//	uint8_t destination_reached = 0 ;
+//	angle_counter_alignement = 0;
+//	float alpha = asin((IMAGE_BUFFER_SIZE/2-position)/taille_ligne);
+//	if (alpha > 0){
+//		right_motor_set_speed(SPEED_FORWARD*0.2);
+//		left_motor_set_speed(-SPEED_FORWARD*0.2);
+//	}
+//	else {
+//		right_motor_set_speed(-SPEED_FORWARD*0.2);
+//		left_motor_set_speed(SPEED_FORWARD*0.2);
+//		alpha = -alpha;
+//	}
+//	uint8_t nb_step = (uint8_t)(PERIMETER_EPUCK*alpha/(2*PI)*TIME_CONST_SLOW);
+//	while (!destination_reached){
+//		destination_reached = move(nb_step, angle_counter_alignement);
+//		++angle_counter_alignement;
+//		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+//	}
+
+
+
+
+	dist_to_memorise = (float)get_distTOF()/10. - 2.5;
 	chprintf((BaseSequentialStream *)&SD3, "A MEMORISER = %f CM \n", dist_to_memorise);
 
 //	position = get_line_position();
@@ -229,17 +299,28 @@ void go_to_ball_handler(){
 
 	wait_sem_TOF();
 	dist_TOF = get_distTOF();
-
-	while (dist_TOF > 50){
+	uint16_t old_position = position;
+	while (dist_TOF > 25){
 
 		wait_sem_TOF();
 		dist_TOF = get_distTOF();
 		distance = get_distance_cm();
 		position = get_line_position();
-		chprintf((BaseSequentialStream *)&SD3, "Distance = %f mm \n", distance);
-		chprintf((BaseSequentialStream *)&SD3, "Position = %d mm \n", position);
-		right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
-		left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+		if (position == 0){
+			position = old_position;
+		}
+		if (dist_TOF > 100){
+			right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT);
+			left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT);
+//			right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT - (position - IMAGE_BUFFER_SIZE/2));
+//			left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT + (position - IMAGE_BUFFER_SIZE/2));
+		}
+		else {
+			right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT);
+			left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT);
+		}
+//		right_motor_set_speed(SPEED_FORWARD);
+//		left_motor_set_speed(SPEED_FORWARD);
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP*0.5);
 
 	}
@@ -275,11 +356,13 @@ void go_to_ball_handler(){
 
 void go_back_center_handler(void){
 
+
+	move_counter = 0;
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(-SPEED_FORWARD);
 	++move_counter;
 	uint8_t destination_reached = 0 ;
-	move_counter = 0;
+
 
 	while (!destination_reached){
 		uint8_t nb_step = (uint8_t)(PERIMETER_EPUCK/2*TIME_CONST);
@@ -295,7 +378,7 @@ void go_back_center_handler(void){
 //	}
 
 
-
+	go_back_center_counter = 0;
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(SPEED_FORWARD);
 	destination_reached = 0 ;
@@ -306,29 +389,29 @@ void go_back_center_handler(void){
 		++go_back_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 	}
-
+	right_motor_set_speed(0);
+	left_motor_set_speed(0);
 	current_mode = GO_BACK_HOME;
 }
 
+
 void go_back_home_handler(void){
 
-	right_motor_set_speed(SPEED_FORWARD);
-	left_motor_set_speed(-SPEED_FORWARD);
+	right_motor_set_speed(SPEED_FORWARD*0.2);
+	left_motor_set_speed(-SPEED_FORWARD*0.2);
 	uint8_t destination_reached = 0 ;
-	float distace_to_face_exit = angle_counter/TIME_CONST;
-	angle_counter = 0;
-	++angle_counter;
-	++angle_counter;
+	uint32_t nb_step = 	angle_counter_2;
+	chprintf((BaseSequentialStream *)&SD3, "angle_counter = %d mm \n\n\n\n\n\n\n\n", angle_counter_2);
+	angle_counter_2 = 0;
 	while (!destination_reached){
-		chprintf((BaseSequentialStream *)&SD3, "counter_exit_angle = %d mm \n", angle_counter);
-		uint8_t nb_step = (int)(distace_to_face_exit*TIME_CONST);
-		destination_reached = move(nb_step, angle_counter);
-		++angle_counter;
-		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+		destination_reached = move(nb_step, angle_counter_2);
+		++angle_counter_2;
+		chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
 	}
 
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(SPEED_FORWARD);
+	move_center_counter = 0;
 
 	destination_reached = 0;
 	move_center_counter = 0;
@@ -348,8 +431,6 @@ uint8_t move(uint8_t nb_step , uint16_t counter){
 
 
 	if(counter < nb_step){
-		chprintf((BaseSequentialStream *)&SD3, "counter = %d mm \n", counter);
-		chprintf((BaseSequentialStream *)&SD3, "nb step total = %d mm \n", (int)nb_step);
 		return 0;
 	}
 	return 1;

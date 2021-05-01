@@ -65,6 +65,7 @@ void sound_remote(float* data){
 	//go forward
 	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H){
 		chBSemSignal(&sendAudioState_sem);
+		chprintf((BaseSequentialStream *)&SD3, "Audio signal sent");
 		current_mic_state = NO_MEASURE;
 	} else {
 		left_motor_set_speed(0);
@@ -88,7 +89,9 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 	switch(current_mic_state) {
 	case NO_MEASURE:
-		//Do nothing
+		if (get_current_state() == WAIT_FOR_COLOR){
+			current_mic_state = WAIT_FOR_WHISTLE;
+		}
 		break;
 	case WAIT_FOR_WHISTLE:
 		/*
@@ -190,5 +193,7 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 }
 
 void wait_sem_audio(void) {
+	chprintf((BaseSequentialStream *)&SD3, "J'attends actuellement l'audio");
 	chBSemWait(&sendAudioState_sem);
+	chprintf((BaseSequentialStream *)&SD3, "J'ai reçu");
 }
