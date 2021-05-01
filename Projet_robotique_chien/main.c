@@ -27,6 +27,11 @@ messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
+
+ static uint8_t current_main_state = WAIT_FOR_COLOR;
+
+
+
 void SendUint8ToComputer(uint8_t* data, uint16_t size) 
 {
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
@@ -52,7 +57,7 @@ int main(void)
     halInit();
     chSysInit();
     mpu_init();
-    //proximity_start();
+    proximity_start();
 
     // Init the communication bus
     messagebus_init(&bus, &bus_lock, &bus_condvar);
@@ -72,66 +77,69 @@ int main(void)
 	//start the time-of-flight sensor
 	VL53L0X_start();
 
+	spi_comm_start();
+
 	//stars the threads for the pi regulator and the processing of the image
-	//Deplacement_robot_start();
-	//process_image_start();
+
+	Deplacement_robot_start();
+
+	process_image_start();
 
 
 	// Start the thread to sense proximity
+
 	//proximityDetec_start();
 
 	// Start the thread to sense distance
-	//distanceDetec_start();
-
+	distanceDetec_start();
 
     //starts the microphones processing thread.
     //it calls the callback given in parameter when samples are ready
-    mic_start(&processAudioData);
+     mic_start(&processAudioData);
 
-//	uint8_t actual_color = NO_COLOR;
-	uint8_t current_main_state = WAIT_FOR_COLOR;
 	set_led(LED1, 0);
+
+	uint8_t current_color = get_color();
+
 
     /* Infinite loop. */
     while (1) {
+
     	switch(current_main_state) {
     	case WAIT_FOR_COLOR:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = WAIT_FOR_COLOR, ");
     		wait_sem_audio();
+    		chprintf((BaseSequentialStream *)&SD3, "Current color = %d", current_color);
     		current_main_state = RETURN_CENTER;
     		set_led(LED1, 1);
-    		chThdSleepMilliseconds(1000);
     		break;
     	case RETURN_CENTER:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER, ");
-    		wait_sem_audio();
+    		wait_sem_motor();
     		current_main_state = FIND_BALL;
     		set_led(LED3, 1);
-    		chThdSleepMilliseconds(1000);
     		break;
     	case FIND_BALL:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = FIND_BALL, ");
-    		wait_sem_audio();
+    		wait_sem_motor();
     		current_main_state = GET_BALL;
     		set_led(LED5, 1);
-    		chThdSleepMilliseconds(1000);
     		break;
     	case GET_BALL:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = GET_BALL, ");
-    		wait_sem_audio();
+    		wait_sem_motor();
     		current_main_state = BACK_HOME;
     		set_led(LED7, 1);
-    		chThdSleepMilliseconds(1000);
     		break;
     	case BACK_HOME:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
-    		wait_sem_audio();
+     		set_led(LED7, 0);
+    		wait_sem_motor();
     		current_main_state = WAIT_FOR_COLOR;
     		set_led(LED1, 0);
     		set_led(LED3, 0);
     		set_led(LED5, 0);
     		set_led(LED7, 0);
-    		chThdSleepMilliseconds(1000);
     		break;
     	}
 
@@ -139,6 +147,11 @@ int main(void)
     	chThdSleepMilliseconds(100);
     }
 }
+
+uint8_t get_current_main_state(void){
+	return current_main_state;
+}
+
 
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;

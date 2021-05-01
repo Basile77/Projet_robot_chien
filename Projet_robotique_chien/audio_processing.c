@@ -17,6 +17,9 @@
 #define NO_MEASURE 			0
 #define WAIT_FOR_WHISTLE 	1
 
+#define NO_MEASURE 			0
+#define WAIT_FOR_WHISTLE 	1
+
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 static BSEMAPHORE_DECL(sendAudioState_sem, TRUE);
@@ -34,12 +37,12 @@ static float micBack_output[FFT_SIZE];
 
 static bool current_mic_state = WAIT_FOR_WHISTLE;
 
-#define MIN_VALUE_THRESHOLD	10000
+#define MIN_VALUE_THRESHOLD	50000
 
 #define MIN_FREQ		64	//1000Hz we don't analyze before this index to not use resources for nothing
 #define MAX_FREQ		128	//2000Hz we don't analyze after this index to not use resources for nothing
 
-#define FREQ_WHISTLE	80 // 96 = 1500Hz
+#define FREQ_WHISTLE	112 // 96 = 1500Hz
 #define FREQ_WHISTLE_L	FREQ_WHISTLE-5 //FREQ_WHISTLE - 78Hz
 #define FREQ_WHISTLE_H	FREQ_WHISTLE+5 //FREQ_WHISTLE + 78Hz
 
@@ -62,6 +65,7 @@ void sound_remote(float* data){
 	//go forward
 	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H){
 		chBSemSignal(&sendAudioState_sem);
+		chprintf((BaseSequentialStream *)&SD3, "Audio Sem sent");
 		current_mic_state = NO_MEASURE;
 	} else {
 		left_motor_set_speed(0);
@@ -85,7 +89,9 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 
 	switch(current_mic_state) {
 	case NO_MEASURE:
-		//Do nothing
+		if (get_current_main_state() == WAIT_FOR_COLOR) {
+			current_mic_state = WAIT_FOR_WHISTLE;
+		}
 		break;
 	case WAIT_FOR_WHISTLE:
 		/*
