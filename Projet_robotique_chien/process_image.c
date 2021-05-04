@@ -17,7 +17,8 @@
 #define NOT_CAPTURING		1
 
 #define COLOR_FULL_SCALE 	256
-#define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE/2
+#define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE*0.4
+#define MINIMUM_COLOR		180
 
 static float distance_cm = 10;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
@@ -32,7 +33,7 @@ static BSEMAPHORE_DECL(image_ready_sem, TRUE);
  *  Returns 0 if line not found
  */
 
-uint16_t extract_line_width(uint8_t *buffer){
+uint16_t extract_line_width(uint8_t *main_color, uint8_t *color2, uint8_t *color3){
 
 	uint16_t i = 0, begin = 0, end = 0, width = 0;
 	uint8_t stop = 0, wrong_line = 0, line_not_found = 0;
@@ -42,7 +43,7 @@ uint16_t extract_line_width(uint8_t *buffer){
 
 	//performs an average
 	for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE ; i++){
-		mean += buffer[i];
+		mean += main_color[i];
 	}
 	mean /= IMAGE_BUFFER_SIZE;
 
@@ -53,7 +54,8 @@ uint16_t extract_line_width(uint8_t *buffer){
 		{
 			//the slope must at least be WIDTH_SLOPE wide and is compared
 		    //to the mean of the image
-		    if(buffer[i] < mean && buffer[i+WIDTH_SLOPE] > mean && buffer[i+WIDTH_SLOPE] > 130)
+		    if(main_color[i] < mean && main_color[i+WIDTH_SLOPE] > mean &&
+		    		main_color[i+WIDTH_SLOPE] > MINIMUM_COLOR)
 		    {
 		        begin = i;
 		        stop = 1;
@@ -67,17 +69,10 @@ uint16_t extract_line_width(uint8_t *buffer){
 
 		    while(stop == 0 && i < IMAGE_BUFFER_SIZE)
 		    {
-		        if(buffer[i] < mean && buffer[i-WIDTH_SLOPE] > mean)
+		        if(main_color[i] < mean && main_color[i-WIDTH_SLOPE] > mean)
 		        {
 		            end = i;
 		            stop = 1;
-		     //for(uint8_t l = begin; l<end; ++l){
-		     //	if (buffer[l] < mean){
-		     //       end = 0;
-		     //	}
-		     //}
-
-
 		        }
 		        i++;
 		    }
@@ -103,11 +98,12 @@ uint16_t extract_line_width(uint8_t *buffer){
 
 			line_position = 0;
 			line_not_found = 1;
-			//wrong_line = 1;
+			wrong_line = 1;
 		}
 	}while(wrong_line);
 
-	if(line_not_found){
+	if(line_not_found || main_color[(begin + end)/2] < color2[(begin + end)/2]
+		|| main_color[(begin + end)/2] < color3[(begin + end)/2]){
 		begin = 0;
 		end = 0;
 		width = last_width;
@@ -115,7 +111,6 @@ uint16_t extract_line_width(uint8_t *buffer){
 		last_width = width = (end - begin);
 		line_position = (begin + end)/2; //gives the line position.
 	}
-
 
 	//sets a maximum width or returns the measured width
 	if((PXTOCM/width) > MAX_DISTANCE){
@@ -185,7 +180,7 @@ static THD_FUNCTION(CaptureImage, arg) {
     }
 }
 
-static THD_WORKING_AREA(waProcessImage, 2048);
+static THD_WORKING_AREA(waProcessImage, 4096);
 static THD_FUNCTION(ProcessImage, arg) {
 
     chRegSetThreadName(__FUNCTION__);
@@ -231,11 +226,19 @@ static THD_FUNCTION(ProcessImage, arg) {
 			}
 			break;
 		case FIND_COLOR:
-			//color_memory = extract_color(image_green, image_red, image_blue);
-
 
 			//search for a line in the image and gets its width in pixels
-			lineWidth = extract_line_width(image_green);
+			switch(color_memory){
+			case RED:
+				lineWidth = extract_line_width(image_red, image_green, image_blue);
+				break;
+			case GREEN:
+				lineWidth = extract_line_width(image_green, image_red, image_blue);
+				break;
+			case BLUE:
+				lineWidth = extract_line_width(image_blue, image_green, image_red);
+				break;
+			}
 
 			//converts the width into a distance between the robot and the camera
 			if(lineWidth){

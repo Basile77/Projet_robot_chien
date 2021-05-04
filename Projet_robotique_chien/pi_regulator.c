@@ -24,6 +24,7 @@
 #define TIME_CONST			(1000.0f/GENERAL_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 #define TIME_CONST_SLOW			(1000.0f/LOOK_BALL_TIME_SLEEP/(SPEED_FORWARD*0.2)*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 
+
 //defini 2 fois ATTENTION
 #define PI                  3.1415f
 #define WHEEL_DISTANCE      5.35f    //cm
@@ -169,10 +170,9 @@ void move_center_handler(){
 	left_motor_set_speed(-SPEED_FORWARD);
 	uint8_t destination_reached = 0 ;
 	move_center_counter = 0;
-
+	uint8_t nb_step = (int)DIST_TO_CENTER*TIME_CONST;
 
 	while (!destination_reached){
-		uint8_t nb_step = (int)DIST_TO_CENTER*TIME_CONST;
 		destination_reached = move(nb_step, move_center_counter);
 		++move_center_counter;
 		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);

@@ -8,6 +8,7 @@
 #include <motors.h>
 #include <audio/microphone.h>
 #include <audio_processing.h>
+#include <process_image.h>
 #include <communications.h>
 #include <fft.h>
 #include <arm_math.h>
@@ -64,7 +65,7 @@ void sound_remote(float* data){
 	}
 
 	//go forward
-	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H){
+	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H && get_color() != NO_COLOR){
 		chBSemSignal(&sendAudioState_sem);
 		current_mic_state = NO_MEASURE;
 	} else {
