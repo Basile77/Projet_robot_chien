@@ -97,6 +97,8 @@ int main(void)
     //it calls the callback given in parameter when samples are ready
      mic_start(&processAudioData);
 
+
+
 	set_led(LED1, 0);
 
 	uint8_t current_color = get_color();
@@ -109,6 +111,7 @@ int main(void)
     	case WAIT_FOR_COLOR:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = WAIT_FOR_COLOR, ");
     		wait_sem_audio();
+
     		chprintf((BaseSequentialStream *)&SD3, "Current color = %d", current_color);
     		current_main_state = RETURN_CENTER;
     		set_led(LED1, 1);
@@ -117,9 +120,11 @@ int main(void)
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER, ");
     		wait_sem_motor();
     		current_main_state = FIND_BALL;
+
     		set_led(LED3, 1);
     		break;
     	case FIND_BALL:
+    		set_rgb_led(LED4, 250, 50, 160);
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = FIND_BALL, ");
     		wait_sem_motor();
     		current_main_state = GET_BALL;
@@ -147,6 +152,7 @@ int main(void)
     	chThdSleepMilliseconds(100);
     }
 }
+
 
 uint8_t get_current_main_state(void){
 	return current_main_state;

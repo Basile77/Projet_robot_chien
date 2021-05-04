@@ -7,6 +7,6 @@ void distanceDetec_start(void);
 uint16_t get_distTOF(void);
 
 
-void wait_sem(void);
+void wait_sem_TOF(void);
 
 #endif

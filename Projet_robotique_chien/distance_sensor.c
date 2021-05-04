@@ -82,7 +82,7 @@ static THD_FUNCTION(DistanceDetec, arg) {
 void distance_to_ball_handler(void) {
 	distTOF = VL53L0X_get_dist_mm();
 	chBSemSignal(&distance_info_sem);
-	chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", distTOF);
+	//chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", distTOF);
 }
 
 uint16_t get_distTOF(void) {
@@ -97,6 +97,6 @@ void distanceDetec_start(void) {
 	chThdCreateStatic(waDistanceDetec, sizeof(waDistanceDetec), NORMALPRIO, DistanceDetec, NULL);
 }
 
-void wait_sem(void) {
+void wait_sem_TOF(void) {
 	chBSemWait(&distance_info_sem);
 }

@@ -12,8 +12,8 @@ extern "C" {
 
 //constants for the differents parts of the project
 #define IMAGE_BUFFER_SIZE		640
-#define WIDTH_SLOPE				5
-#define MIN_LINE_WIDTH			40
+#define WIDTH_SLOPE				15
+#define MIN_LINE_WIDTH			80
 #define ROTATION_THRESHOLD		10
 #define ROTATION_COEFF			2 
 #define PXTOCM					1570.0f //experimental value
@@ -38,12 +38,14 @@ extern "C" {
 #define RED						3
 
 
+
 /** Robot wide IPC bus. */
 extern messagebus_t bus;
 
 extern parameter_namespace_t parameter_root;
 
 void SendUint8ToComputer(uint8_t* data, uint16_t size);
+
 uint8_t get_current_main_state(void);
 
 #ifdef __cplusplus
