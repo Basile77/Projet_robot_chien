@@ -22,7 +22,7 @@
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(1000.0f/GENERAL_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
-#define TIME_CONST_SLOW			(1000.0f/GENERAL_TIME_SLEEP/(SPEED_FORWARD*0.2)*NSTEP_ONE_TURN/WHEEL_PERIMETER)
+#define TIME_CONST_SLOW			(1000.0f/LOOK_BALL_TIME_SLEEP/(SPEED_FORWARD*0.2)*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 
 //defini 2 fois ATTENTION
 #define PI                  3.1415f
@@ -74,7 +74,7 @@ void go_back_center_handler(void);
 void go_back_home_handler(void);
 void move_center_handler(void);
 
-uint8_t move(uint8_t nb_step , uint16_t counter);
+uint8_t move(uint16_t nb_step , uint16_t counter);
 uint8_t actual_mode(uint8_t main_state);
 
 static BSEMAPHORE_DECL(sendMotoState_sem, TRUE);
@@ -217,6 +217,18 @@ void look_for_ball_handler(){
 	chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
 
 	chprintf((BaseSequentialStream *)&SD3, "angle_counter = %d mm \n\n\n\n\n\n\n\n", angle_counter);
+
+//	while (angle_counter_2 < 1077){
+//	//while (position == 0){
+//
+//		angle_counter += SPEED_FORWARD*0.2;
+//		++angle_counter_2;
+//		distance = get_distance_cm();
+//		position = get_line_position();
+//		chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
+//
+//	}
+
 	while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
 	//while (position == 0){
 
@@ -368,7 +380,6 @@ void go_back_center_handler(void){
 	move_counter = 0;
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(-SPEED_FORWARD);
-	++move_counter;
 	uint8_t destination_reached = 0 ;
 
 
@@ -406,16 +417,37 @@ void go_back_center_handler(void){
 void go_back_home_handler(void){
 
 
-	right_motor_set_speed(SPEED_FORWARD*0.2);
-	left_motor_set_speed(-SPEED_FORWARD*0.2);
-	uint8_t destination_reached = 0 ;
 	uint32_t nb_step = 	angle_counter_2;
-	chprintf((BaseSequentialStream *)&SD3, "angle_counter = %d mm \n\n\n\n\n\n\n\n", angle_counter_2);
+	move_counter = (PERIMETER_EPUCK/2*TIME_CONST_SLOW);
+
+	chprintf((BaseSequentialStream *)&SD3, "move_counter = %d mm \n\n\n", move_counter);
+	chprintf((BaseSequentialStream *)&SD3, "nb_step = %d mm \n\n", nb_step);
+
+	if (move_counter > nb_step){
+		nb_step = move_counter - nb_step;
+		right_motor_set_speed(SPEED_FORWARD*0.2);
+		left_motor_set_speed(-SPEED_FORWARD*0.2);
+	}
+	else {
+		nb_step = nb_step - move_counter;
+		right_motor_set_speed(-SPEED_FORWARD*0.2);
+		left_motor_set_speed(SPEED_FORWARD*0.2);
+	}
+	chprintf((BaseSequentialStream *)&SD3, "move_counter = %d mm \n\n\n", move_counter);
+	chprintf((BaseSequentialStream *)&SD3, "nb_step = %d mm \n\n", nb_step);
+
+	uint8_t destination_reached = 0 ;
+
+	chprintf((BaseSequentialStream *)&SD3, "angle_counter = %d mm \n\n\n\n\n\n\n\n", angle_counter);
+	chprintf((BaseSequentialStream *)&SD3, "nb_step = %d mm \n\n", nb_step);
+	chprintf((BaseSequentialStream *)&SD3, "angle_counter_2 = %d mm \n\n\n\n\n\n\n\n", angle_counter_2);
 	angle_counter_2 = 0;
 	while (!destination_reached){
-		destination_reached = move(nb_step, angle_counter_2);
-		++angle_counter_2;
 		chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
+		destination_reached = move(nb_step, angle_counter_2);
+//		chprintf((BaseSequentialStream *)&SD3, "angle_counter_2 = %d mm \n\n", angle_counter_2);
+//		chprintf((BaseSequentialStream *)&SD3, "nb_step = %d mm \n\n", nb_step);
+		++angle_counter_2;
 	}
 
 	right_motor_set_speed(SPEED_FORWARD);
@@ -436,7 +468,7 @@ void go_back_home_handler(void){
 }
 
 
-uint8_t move(uint8_t nb_step , uint16_t counter){
+uint8_t move(uint16_t nb_step , uint16_t counter){
 
 
 	if(counter < nb_step){
