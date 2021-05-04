@@ -83,7 +83,7 @@ int main(void)
 
 	Deplacement_robot_start();
 
-	//process_image_start();
+	process_image_start();
 
 
 	// Start the thread to sense proximity
