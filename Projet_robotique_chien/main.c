@@ -17,6 +17,7 @@
 #include <sensors/VL53L0X/VL53L0X.h>
 #include <msgbus/messagebus.h>
 #include <leds.h>
+#include "audio/play_melody.h"
 
 #include <pi_regulator.h>
 #include <process_image.h>
@@ -85,6 +86,7 @@ int main(void)
 
 	process_image_start();
 
+	playMelodyStart();
 
 	// Start the thread to sense proximity
 
@@ -99,7 +101,6 @@ int main(void)
 
 
 
-	set_led(LED1, 0);
 
 	uint8_t current_color = get_color();
 
@@ -114,37 +115,49 @@ int main(void)
 
     		chprintf((BaseSequentialStream *)&SD3, "Current color = %d", current_color);
     		current_main_state = RETURN_CENTER;
-    		set_led(LED1, 1);
     		break;
     	case RETURN_CENTER:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = RETURN_CENTER, ");
     		wait_sem_motor();
     		current_main_state = FIND_BALL;
 
-    		set_led(LED3, 1);
+
     		break;
     	case FIND_BALL:
-    		set_rgb_led(LED4, 250, 50, 160);
+
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = FIND_BALL, ");
     		wait_sem_motor();
     		current_main_state = GET_BALL;
-    		set_led(LED5, 1);
     		break;
     	case GET_BALL:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = GET_BALL, ");
     		wait_sem_motor();
     		current_main_state = BACK_HOME;
-    		set_led(LED7, 1);
+
     		break;
     	case BACK_HOME:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
-     		set_led(LED7, 0);
     		wait_sem_motor();
     		current_main_state = WAIT_FOR_COLOR;
-    		set_led(LED1, 0);
-    		set_led(LED3, 0);
-    		set_led(LED5, 0);
-    		set_led(LED7, 0);
+    		for (uint8_t i = 0; i < 4; ++i){
+    			set_rgb_led(LED2, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    			set_rgb_led(LED4, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    			set_rgb_led(LED6, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    			set_rgb_led(LED8, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    			set_rgb_led(LED2, 0, 0, 0);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    			set_rgb_led(LED4, 0, 0, 0);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    			set_rgb_led(LED6, 0, 0, 0);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    			set_rgb_led(LED8, 0, 0, 0);
+        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		}
+
     		break;
     	}
 
