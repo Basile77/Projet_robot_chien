@@ -86,6 +86,7 @@ int main(void)
 
 	process_image_start();
 
+	dac_start();
 	playMelodyStart();
 
 	// Start the thread to sense proximity
@@ -137,6 +138,7 @@ int main(void)
     		break;
     	case BACK_HOME:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
+    		playMelody(PIRATES_OF_THE_CARIBBEAN, ML_FORCE_CHANGE, NULL);
     		wait_sem_motor();
     		current_main_state = WAIT_FOR_COLOR;
     		for (uint8_t i = 0; i < 4; ++i){
@@ -157,7 +159,7 @@ int main(void)
     			set_rgb_led(LED8, 0, 0, 0);
         		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		}
-
+    		stopCurrentMelody();
     		break;
     	}
 

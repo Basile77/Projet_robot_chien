@@ -143,7 +143,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
     	case GO_BACK_HOME:
 
-    		//playMelody(PIRATES_OF_THE_CARIBBEAN, ML_FORCE_CHANGE, NULL);
+
     		go_back_home_handler();
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
