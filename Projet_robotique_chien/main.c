@@ -14,12 +14,12 @@
 #include <chprintf.h>
 #include <sensors/proximity.h>
 #include <audio/microphone.h>
+#include <deplacement_robot.h>
 #include <sensors/VL53L0X/VL53L0X.h>
 #include <msgbus/messagebus.h>
 #include <leds.h>
 #include "audio/play_melody.h"
 
-#include <pi_regulator.h>
 #include <process_image.h>
 #include "distance_sensor.h"
 #include "audio_processing.h"

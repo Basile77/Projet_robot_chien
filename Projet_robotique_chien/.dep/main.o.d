@@ -149,6 +149,7 @@ build/obj/main.o: main.c \
  ../../lib/e-puck2_main-processor/src/sensors/proximity.h \
  ../../lib/e-puck2_main-processor/src/audio/microphone.h \
  ../../lib/e-puck2_main-processor/src/audio/mp45dt02_processing.h \
+ deplacement_robot.h \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/VL53L0X.h \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/vl53l0x_api.h \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/vl53l0x_api_strings.h \
@@ -160,8 +161,8 @@ build/obj/main.o: main.c \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/../../platform/inc/vl53l0x_platform_log.h \
  ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/../../platform/inc/vl53l0x_i2c_platform.h \
  ../../lib/e-puck2_main-processor/src/leds.h \
- ../../lib/e-puck2_main-processor/src/audio/play_melody.h pi_regulator.h \
- process_image.h distance_sensor.h audio_processing.h
+ ../../lib/e-puck2_main-processor/src/audio/play_melody.h process_image.h \
+ distance_sensor.h audio_processing.h
 
 c:\users\basil\documents\tp_robotique\eclipse_e-puck2\tools\gcc-arm-none-eabi-7-2017-q4-major-win32\arm-none-eabi\include\stdio.h:
 
@@ -467,6 +468,8 @@ c:\users\basil\documents\tp_robotique\eclipse_e-puck2\tools\gcc-arm-none-eabi-7-
 
 ../../lib/e-puck2_main-processor/src/audio/mp45dt02_processing.h:
 
+deplacement_robot.h:
+
 ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/VL53L0X.h:
 
 ../../lib/e-puck2_main-processor/src/sensors/VL53L0X/Api/core/inc/vl53l0x_api.h:
@@ -490,8 +493,6 @@ c:\users\basil\documents\tp_robotique\eclipse_e-puck2\tools\gcc-arm-none-eabi-7-
 ../../lib/e-puck2_main-processor/src/leds.h:
 
 ../../lib/e-puck2_main-processor/src/audio/play_melody.h:
-
-pi_regulator.h:
 
 process_image.h:
 

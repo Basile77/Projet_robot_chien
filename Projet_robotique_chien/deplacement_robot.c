@@ -3,11 +3,11 @@
 #include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
+#include <deplacement_robot.h>
 #include <leds.h>
 
 #include <main.h>
 #include <motors.h>
-#include <pi_regulator.h>
 #include <process_image.h>
 #include <distance_sensor.h>
 #include "audio/play_melody.h"
@@ -19,8 +19,8 @@
 #define DIST_TO_CENTER		20
 #define SPEED_FORWARD		600
 #define SPEED_ROTATE		SPEED_FORWARD*0.2
-#define CORRECTION 			0.4
-#define CORRECTION_BIS 		0.2
+#define CORRECTION 			0.4					//set a range for the detection of the object in look_ball_hander()
+//#define CORRECTION_BIS 		0.2
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(1000.0f/GENERAL_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
@@ -47,42 +47,42 @@
 #define LOOK_BALL_TIME_SLEEP 5
 
 //Current mode of this thread
-static int8_t current_mode = NOT_MOVING;
+static int8_t current_motor_state = NOT_MOVING;
 
 
 
 //Static parameters
 
-static int16_t position = 0;
-static float distance = DIST_INIT;
-static uint16_t dist_TOF = DIST_INIT_TOF;
-static float dist_to_memorise = DIST_INIT_TOF;
-static uint32_t move_center_counter = 0;
+static int16_t position = 0;					//position of the center of the line
+static float distance = DIST_INIT;				//distance, calculated with the width of the line
+static uint16_t dist_TOF = DIST_INIT_TOF;		//distance given by the TOF sensor
+static float dist_to_memorise = DIST_INIT_TOF;	//distance of the object when detected
 
 static uint32_t angle_counter = 0;
-static uint32_t angle_counter_2 = 0;
-static uint16_t go_back_center_counter = 0;
+static uint32_t angle_counter_2 = 0;			//counter to remember the angle from looking to home to the object
 
 
-static uint16_t move_counter = 0;
+static uint16_t move_counter = 0;				//counter used in every move function
 
 
 //handler for different mode
 
-void look_for_ball_handler(void);
-void go_to_ball_handler(void);
-void go_back_center_handler(void);
-void go_back_home_handler(void);
-void move_center_handler(void);
+void move_center_handler(void);					//function called when moving center
+void look_for_ball_handler(void);				//function called when looking around for the ball
+void go_to_ball_handler(void);					//function called when going to the ball
+void go_back_center_handler(void);				//function called when ball found, semi-circle and go center
+void go_back_home_handler(void);				//function called when robot in center, turn around and go back home
+
 
 //different fonction to move
 
-uint8_t move(uint16_t nb_step , uint16_t counter);
 void go_to(uint16_t nb_step , uint16_t counter);
 void go_to_slow(uint16_t nb_step , uint16_t counter);
+uint8_t move(uint16_t nb_step , uint16_t counter);
 
-//set current state
-uint8_t actual_mode(uint8_t main_state);
+
+//set current state by looking ate main state
+uint8_t current_mode(uint8_t main_state);
 
 
 
@@ -95,19 +95,18 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-	uint8_t erreur_cancel = 0;
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
 
     while(1){
 
-        switch (current_mode){
+        switch (current_motor_state){
 
     	case NOT_MOVING:
 
     		right_motor_set_speed(0);
     		left_motor_set_speed(0);
-    		current_mode = actual_mode(get_current_main_state());
+    		current_motor_state = current_mode(get_current_main_state());
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
@@ -117,7 +116,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 
-    		current_mode = actual_mode(get_current_main_state());
+    		current_motor_state = current_mode(get_current_main_state());
     		break;
 
     	case LOOKING_FOR_BALL:
@@ -126,43 +125,31 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
 
-    		current_mode = actual_mode(get_current_main_state());
+    		current_motor_state = current_mode(get_current_main_state());
     		break;
 
     	case GO_TO_BALL:
 
-    		// Supprimer les 10 premières valeurs
-    		if (erreur_cancel > 10){
         	go_to_ball_handler();
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-
-    		current_mode = actual_mode(get_current_main_state());
-    		}
-    		else {
-    			++erreur_cancel;
-        		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
-    		}
+    		current_motor_state = current_mode(get_current_main_state());
     		break;
 
     	case GO_BACK_CENTER:
-     		set_led(LED5, 0);
     		go_back_center_handler();
-    		set_led(LED1, 0);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		break;
 
     	case GO_BACK_HOME:
 
-    		set_led(LED3, 0);
     		//playMelody(PIRATES_OF_THE_CARIBBEAN, ML_FORCE_CHANGE, NULL);
     		go_back_home_handler();
-     		set_led(LED5, 0);
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		right_motor_set_speed(0);
     		left_motor_set_speed(0);
-		current_mode = actual_mode(get_current_main_state());
+    		current_motor_state = current_mode(get_current_main_state());
 
     		break;
 
@@ -244,10 +231,8 @@ void look_for_ball_handler(){
 
 	position = get_line_position();
 	distance = get_distance_cm();
-	set_led(LED5, 1);
 	dist_to_memorise = get_distTOF()/10 - 2;
 	chprintf((BaseSequentialStream *)&SD3, "A MEMORISER = %f CM \n", dist_to_memorise);
-	set_led(LED7, 1);
 //	while (angle_counter_2 < 1077){
 //	//while (position == 0){
 //
@@ -310,7 +295,7 @@ void look_for_ball_handler(){
 //	position = get_line_position();
 //	distance = get_distance_cm();
 //	if (position > IMAGE_BUFFER_SIZE/2*(1 - CORRECTION) && position < IMAGE_BUFFER_SIZE/2*(1 + CORRECTION) && distance < 50){
-//		current_mode = GO_TO_BALL;
+//		current_motor_state = GO_TO_BALL;
 //		dist_to_memorise = get_distTOF();
 //	}
 //	else {
@@ -376,7 +361,7 @@ void go_to_ball_handler(){
 //else if (dist_TOF < 50 ){
 //	right_motor_set_speed(0);
 //	left_motor_set_speed(0);
-//	current_mode = GO_BACK_CENTER;
+//	current_motor_state = GO_BACK_CENTER;
 //	}
 }
 
@@ -419,7 +404,7 @@ void go_back_center_handler(void){
 
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
-	current_mode = GO_BACK_HOME;
+	current_motor_state = GO_BACK_HOME;
 }
 
 
@@ -483,7 +468,7 @@ void go_back_home_handler(void){
 //	}
 
 
-	current_mode = NOT_MOVING;
+	current_motor_state = NOT_MOVING;
 }
 
 
@@ -531,7 +516,7 @@ void go_to_slow(uint16_t nb_step , uint16_t counter){
 
 }
 
-uint8_t actual_mode(uint8_t main_state){
+uint8_t current_mode(uint8_t main_state){
 	switch(main_state) {
 	case WAIT_FOR_COLOR:
 		return NOT_MOVING;
