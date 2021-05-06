@@ -17,6 +17,7 @@
 #define NOT_CAPTURING		1
 
 #define COLOR_FULL_SCALE 	256
+#define COLOR_MARGIN 		1.1
 #define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE*0.4
 #define MINIMUM_COLOR		180
 
@@ -135,19 +136,19 @@ uint8_t extract_color(uint8_t *buffer_green, uint8_t *buffer_red, uint8_t *buffe
 	if ((buffer_green[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD)) {
-		set_rgb_led(LED2, 0, RGB_MAX_INTENSITY, 0);
+		set_rgb_led(LED6, 0, RGB_MAX_INTENSITY/2, 0);
 //		chprintf((BaseSequentialStream *)&SD3, "GREEN, ");
 		return GREEN;
 	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD)) {
-		set_rgb_led(LED2, RGB_MAX_INTENSITY, 0, 0);
+		set_rgb_led(LED6, RGB_MAX_INTENSITY/2, 0, 0);
 //		chprintf((BaseSequentialStream *)&SD3, "RED, ");
 		return RED;
 	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD)) {
-		set_rgb_led(LED2, 0, 0, RGB_MAX_INTENSITY);
+		set_rgb_led(LED6, 0, 0, RGB_MAX_INTENSITY/2);
 //		chprintf((BaseSequentialStream *)&SD3, "BLUE, ");
 		return BLUE;
 	}
@@ -230,9 +231,19 @@ static THD_FUNCTION(ProcessImage, arg) {
 			//search for a line in the image and gets its width in pixels
 			switch(color_memory){
 			case RED:
+				for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
+						image_red[i] *= COLOR_MARGIN;
+					}
+				}
 				lineWidth = extract_line_width(image_red, image_green, image_blue);
 				break;
 			case GREEN:
+				for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
+						image_red[i] *= COLOR_MARGIN*2;
+					}
+				}
 				lineWidth = extract_line_width(image_green, image_red, image_blue);
 				break;
 			case BLUE:
