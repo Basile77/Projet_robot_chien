@@ -18,9 +18,6 @@
 #define NO_MEASURE 			0
 #define WAIT_FOR_WHISTLE 	1
 
-#define NO_MEASURE 			0
-#define WAIT_FOR_WHISTLE 	1
-
 //semaphore
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 static BSEMAPHORE_DECL(sendAudioState_sem, TRUE);
@@ -30,6 +27,7 @@ static float micLeft_cmplx_input[2 * FFT_SIZE];
 static float micRight_cmplx_input[2 * FFT_SIZE];
 static float micFront_cmplx_input[2 * FFT_SIZE];
 static float micBack_cmplx_input[2 * FFT_SIZE];
+
 //Arrays containing the computed magnitude of the complex numbers
 static float micLeft_output[FFT_SIZE];
 static float micRight_output[FFT_SIZE];
@@ -44,7 +42,7 @@ static bool current_mic_state = WAIT_FOR_WHISTLE;
 #define MAX_FREQ		128	//2000Hz we don't analyze after this index to not use resources for nothing
 
 
-#define FREQ_WHISTLE	112 // 96 = 1500Hz
+#define FREQ_WHISTLE	96 // 96 = 1500Hz
 #define FREQ_WHISTLE_L	FREQ_WHISTLE-5 //FREQ_WHISTLE - 78Hz
 #define FREQ_WHISTLE_H	FREQ_WHISTLE+5 //FREQ_WHISTLE + 78Hz
 
@@ -64,7 +62,7 @@ void sound_remote(float* data){
 		}
 	}
 
-	//go forward
+	//Starts the search if a whistle is detected and a color was shown
 	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H && get_color() != NO_COLOR){
 		chBSemSignal(&sendAudioState_sem);
 		current_mic_state = NO_MEASURE;
@@ -91,7 +89,7 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	switch(current_mic_state) {
 	case NO_MEASURE:
 
-
+		// Periodically checks the main state
 		if (get_current_main_state() == WAIT_FOR_COLOR) {
 			current_mic_state = WAIT_FOR_WHISTLE;
 		}

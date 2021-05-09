@@ -13,17 +13,20 @@
 #define MEMORIZE_COLOR		0
 #define FIND_COLOR			1
 
-#define CAPTURING			0
-#define NOT_CAPTURING		1
+#define NOT_CAPTURING		0
+#define CAPTURING			1
 
 #define COLOR_FULL_SCALE 	256
+#define COLOR_MARGIN 		1.1
 #define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE*0.4
 #define MINIMUM_COLOR		180
 
 static float distance_cm = 10;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 static uint8_t color_memory = NO_COLOR;
+
 static bool process_image_current_state = MEMORIZE_COLOR;
+static bool capture_image_current_state = CAPTURING;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -135,19 +138,19 @@ uint8_t extract_color(uint8_t *buffer_green, uint8_t *buffer_red, uint8_t *buffe
 	if ((buffer_green[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD)) {
-		set_rgb_led(LED2, 0, RGB_MAX_INTENSITY, 0);
+		set_rgb_led(LED6, 0, RGB_MAX_INTENSITY/2, 0);
 //		chprintf((BaseSequentialStream *)&SD3, "GREEN, ");
 		return GREEN;
 	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD)) {
-		set_rgb_led(LED2, RGB_MAX_INTENSITY, 0, 0);
+		set_rgb_led(LED6, RGB_MAX_INTENSITY/2, 0, 0);
 //		chprintf((BaseSequentialStream *)&SD3, "RED, ");
 		return RED;
 	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD)) {
-		set_rgb_led(LED2, 0, 0, RGB_MAX_INTENSITY);
+		set_rgb_led(LED6, 0, 0, RGB_MAX_INTENSITY/2);
 //		chprintf((BaseSequentialStream *)&SD3, "BLUE, ");
 		return BLUE;
 	}
@@ -171,12 +174,30 @@ static THD_FUNCTION(CaptureImage, arg) {
 	dcmi_prepare();
 
     while(1){
-        //starts a capture
-		dcmi_capture_start();
-		//waits for the capture to be done
-		wait_image_ready();
-		//signals an image has been captured
-		chBSemSignal(&image_ready_sem);
+
+    	// Sets the correct camera state by checking main state
+		if (get_current_main_state() == RETURN_CENTER ||
+			get_current_main_state() == BACK_HOME) {
+			capture_image_current_state = NOT_CAPTURING;
+		} else {
+			capture_image_current_state = CAPTURING;
+		}
+
+    	switch(capture_image_current_state) {
+    	case CAPTURING :
+            //starts a capture
+    		dcmi_capture_start();
+    		//waits for the capture to be done
+    		wait_image_ready();
+    		//signals an image has been captured
+    		chBSemSignal(&image_ready_sem);
+    		break;
+    	case NOT_CAPTURING :
+    		//Do nothing until state has changed
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
+    	}
+
     }
 }
 
@@ -220,7 +241,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		switch(process_image_current_state) {
 		case MEMORIZE_COLOR:
-//			uint8_t shown_color = extract_color(image_green, image_red, image_blue);
 			if (extract_color(image_green, image_red, image_blue) != NO_COLOR) {
 				color_memory = extract_color(image_green, image_red, image_blue);
 			}
@@ -230,9 +250,19 @@ static THD_FUNCTION(ProcessImage, arg) {
 			//search for a line in the image and gets its width in pixels
 			switch(color_memory){
 			case RED:
+				for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
+						image_red[i] *= COLOR_MARGIN;
+					}
+				}
 				lineWidth = extract_line_width(image_red, image_green, image_blue);
 				break;
 			case GREEN:
+				for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
+						image_red[i] *= COLOR_MARGIN*2;
+					}
+				}
 				lineWidth = extract_line_width(image_green, image_red, image_blue);
 				break;
 			case BLUE:

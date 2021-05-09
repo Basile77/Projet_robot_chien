@@ -5,6 +5,7 @@
 #include <sensors/proximity.h>
 #include <sensors/VL53L0X/VL53L0X.h>
 #include <motors.h>
+#include <main.h>
 
 #include <distance_sensor.h>
 
@@ -12,14 +13,10 @@
 #define PROX_SLEEP_DURATION_MS	100
 #define TOF_SLEEP_DURATION_MS	100
 
-#define NO_MEASURE			0
-
-// Proximity States
-#define ARRIVAL				1
-static uint8_t current_prox_state = NO_MEASURE;
-
 // TOF States
+#define NO_MEASURE			0
 #define DISTANCE_TO_BALL	1
+
 static uint8_t current_TOF_state = DISTANCE_TO_BALL;
 
 //distance measured by TOF
@@ -29,36 +26,8 @@ static uint16_t distTOF = 0;
 static BSEMAPHORE_DECL(wall_contact_sem, TRUE);
 static BSEMAPHORE_DECL(distance_info_sem, TRUE);
 
-
-
-// Proximity / TOF functions prototypes
-void arrival_handler(void);
+// TOF functions prototypes
 void distance_to_ball_handler(void);
-
-static THD_WORKING_AREA(waProximityDetec, 256);
-static THD_FUNCTION(ProximityDetec, arg) {
-
-    chRegSetThreadName(__FUNCTION__);
-    (void)arg;
-
-    while(1) {
-    	switch(current_prox_state) {
-    	case NO_MEASURE:
-    		// does nothing, no handler needed
-    		chThdSleepMilliseconds(PROX_SLEEP_DURATION_MS);
-    		break;
-
-    	case ARRIVAL:
-    		arrival_handler();
-    		chThdSleepMilliseconds(PROX_SLEEP_DURATION_MS);
-    		break;
-    	}
-    }
-}
-
-void arrival_handler(void) {
-	// A COMPLETER
-}
 
 static THD_WORKING_AREA(waDistanceDetec, 256);
 static THD_FUNCTION(DistanceDetec, arg) {
@@ -67,6 +36,15 @@ static THD_FUNCTION(DistanceDetec, arg) {
     (void)arg;
 
     while(1) {
+
+    	// Sets the correct TOF state by checking main state
+    	if (get_current_main_state() == FIND_BALL ||
+    		get_current_main_state() == GET_BALL) {
+    		current_TOF_state = DISTANCE_TO_BALL;
+    	} else {
+    		current_TOF_state = NO_MEASURE;
+    	}
+
     	switch(current_TOF_state) {
     	case NO_MEASURE:
     		chThdSleepMilliseconds(TOF_SLEEP_DURATION_MS);
@@ -87,10 +65,6 @@ void distance_to_ball_handler(void) {
 
 uint16_t get_distTOF(void) {
 	return distTOF;
-}
-
-void proximityDetec_start(void) {
-	chThdCreateStatic(waProximityDetec, sizeof(waProximityDetec), NORMALPRIO, ProximityDetec, NULL);
 }
 
 void distanceDetec_start(void) {
