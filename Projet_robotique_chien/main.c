@@ -138,10 +138,15 @@ int main(void)
     		break;
     	case BACK_HOME:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
-
-    		//playMelody(PIRATES_OF_THE_CARIBBEAN, ML_FORCE_CHANGE, NULL);
     		wait_sem_motor();
     		current_main_state = WAIT_FOR_COLOR;
+    		//playMelody(PIRATES_OF_THE_CARIBBEAN, ML_FORCE_CHANGE, NULL);
+    		playNote(NOTE_C4, 100);
+    		playNote(NOTE_E4, 100);
+    		playNote(NOTE_G4, 100);
+    		playNote(NOTE_C5, 100);
+    		playNote(NOTE_E5, 100);
+    		playNote(NOTE_G5, 150);
     		for (uint8_t i = 0; i < 4; ++i){
     			set_rgb_led(LED2, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY, RGB_MAX_INTENSITY);
         		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
