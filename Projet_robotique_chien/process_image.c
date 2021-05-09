@@ -13,8 +13,8 @@
 #define MEMORIZE_COLOR		0
 #define FIND_COLOR			1
 
-#define CAPTURING			0
-#define NOT_CAPTURING		1
+#define NOT_CAPTURING		0
+#define CAPTURING			1
 
 #define COLOR_FULL_SCALE 	256
 #define COLOR_MARGIN 		1.1
@@ -24,7 +24,9 @@
 static float distance_cm = 10;
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
 static uint8_t color_memory = NO_COLOR;
+
 static bool process_image_current_state = MEMORIZE_COLOR;
+static bool capture_image_current_state = CAPTURING;
 
 //semaphore
 static BSEMAPHORE_DECL(image_ready_sem, TRUE);
@@ -173,12 +175,30 @@ static THD_FUNCTION(CaptureImage, arg) {
 	dcmi_prepare();
 
     while(1){
-        //starts a capture
-		dcmi_capture_start();
-		//waits for the capture to be done
-		wait_image_ready();
-		//signals an image has been captured
-		chBSemSignal(&image_ready_sem);
+
+    	// Sets the correct camera state by checking main state
+		if (get_current_main_state() == RETURN_CENTER ||
+			get_current_main_state() == BACK_HOME) {
+			capture_image_current_state = NOT_CAPTURING;
+		} else {
+			capture_image_current_state = CAPTURING;
+		}
+
+    	switch(capture_image_current_state) {
+    	case CAPTURING :
+            //starts a capture
+    		dcmi_capture_start();
+    		//waits for the capture to be done
+    		wait_image_ready();
+    		//signals an image has been captured
+    		chBSemSignal(&image_ready_sem);
+    		break;
+    	case NOT_CAPTURING :
+    		//Do nothing until state has changed
+    		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
+    		break;
+    	}
+
     }
 }
 
@@ -222,7 +242,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 		switch(process_image_current_state) {
 		case MEMORIZE_COLOR:
-//			uint8_t shown_color = extract_color(image_green, image_red, image_blue);
 			if (extract_color(image_green, image_red, image_blue) != NO_COLOR) {
 				color_memory = extract_color(image_green, image_red, image_blue);
 			}

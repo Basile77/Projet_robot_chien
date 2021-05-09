@@ -138,6 +138,7 @@ int main(void)
     		break;
     	case BACK_HOME:
     		chprintf((BaseSequentialStream *)&SD3, "Current main State = BACK_HOME");
+
     		//playMelody(PIRATES_OF_THE_CARIBBEAN, ML_FORCE_CHANGE, NULL);
     		wait_sem_motor();
     		current_main_state = WAIT_FOR_COLOR;
@@ -160,6 +161,7 @@ int main(void)
         		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		}
     		//stopCurrentMelody();
+
     		break;
     	}
 
