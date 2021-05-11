@@ -106,8 +106,8 @@ uint16_t extract_line_width(uint8_t *main_color, uint8_t *color2, uint8_t *color
 	}while(wrong_line);
 
 	// Assurance that the correct color line was found
-	if(line_not_found || main_color[(begin + end)/2] < color2[(begin + end)/2]
-		|| main_color[(begin + end)/2] < color3[(begin + end)/2]){
+	if(line_not_found || main_color[(begin + end)/2] < color2[(begin + end)/2]*COLOR_MARGIN
+		|| main_color[(begin + end)/2] < color3[(begin + end)/2]*COLOR_MARGIN){
 		begin = 0;
 		end = 0;
 		width = last_width;
@@ -168,7 +168,7 @@ static THD_FUNCTION(CaptureImage, arg) {
 
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
 	po8030_advanced_config(FORMAT_RGB565, 0, 200, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
-	po8030_set_awb(0);
+	//po8030_set_awb(0);
 
 
 	// White balance + RGB gain (Experimental values)

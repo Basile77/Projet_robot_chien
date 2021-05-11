@@ -176,6 +176,8 @@ void look_for_ball_handler(){
 
 	right_motor_set_speed(SPEED_ROTATE);
 	left_motor_set_speed(-SPEED_ROTATE);
+	distance = get_distance_cm();
+	position = get_line_position();
 
 	while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
 
