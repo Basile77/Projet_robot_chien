@@ -170,8 +170,8 @@ static THD_FUNCTION(CaptureImage, arg) {
 	po8030_advanced_config(FORMAT_RGB565, 0, 200, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
 
 	// White balance + RGB gain (Experimental values)
-	po8030_set_awb(0);
-	po8030_set_rgb_gain(0x5E, 0x40, 0x5D);
+//	po8030_set_awb(0);
+//	po8030_set_rgb_gain(0x5E, 0x50, 0x5D);
 
 	dcmi_enable_double_buffering();
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
@@ -257,6 +257,11 @@ static THD_FUNCTION(ProcessImage, arg) {
 			//search for a line in the image and gets its width in pixels
 			switch(color_memory){
 			case RED:
+				for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
+						image_red[i] *= COLOR_MARGIN;
+					}
+				}
 				lineWidth = extract_line_width(image_red, image_green, image_blue);
 				break;
 			case GREEN:
