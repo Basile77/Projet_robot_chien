@@ -9,8 +9,6 @@
 
 #include <distance_sensor.h>
 
-#define PROXIMITY_THRESHOLD		300
-#define PROX_SLEEP_DURATION_MS	100
 #define TOF_SLEEP_DURATION_MS	100
 
 // TOF States
@@ -23,10 +21,9 @@ static uint8_t current_TOF_state = DISTANCE_TO_BALL;
 static uint16_t distTOF = 0;
 
 // Semaphore
-static BSEMAPHORE_DECL(wall_contact_sem, TRUE);
 static BSEMAPHORE_DECL(distance_info_sem, TRUE);
 
-// TOF functions prototypes
+// TOF function prototype
 void distance_to_ball_handler(void);
 
 static THD_WORKING_AREA(waDistanceDetec, 256);
@@ -39,7 +36,8 @@ static THD_FUNCTION(DistanceDetec, arg) {
 
     	// Sets the correct TOF state by checking main state
     	if (get_current_main_state() == FIND_BALL ||
-    		get_current_main_state() == GET_BALL) {
+    		get_current_main_state() == GET_BALL ||
+			get_current_main_state() == BACK_HOME) {
     		current_TOF_state = DISTANCE_TO_BALL;
     	} else {
     		current_TOF_state = NO_MEASURE;
