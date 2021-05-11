@@ -278,7 +278,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			else{distance_cm = 50;}
 			if(send_to_computer){
 				//sends to the computer the image
-				SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);
+				//SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);
 			}
 			//invert the bool
 			send_to_computer = !send_to_computer;
@@ -299,10 +299,6 @@ uint16_t get_line_position(void){
 uint8_t get_color(void){
 	return color_memory;
 }
-
-
-
-
 
 void process_image_start(void){
 	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
