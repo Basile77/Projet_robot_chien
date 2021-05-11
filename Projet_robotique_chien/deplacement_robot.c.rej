@@ -1,0 +1,13 @@
+diff a/Projet_robotique_chien/deplacement_robot.c b/Projet_robotique_chien/deplacement_robot.c	(rejected hunks)
+@@ -20,10 +20,9 @@
+ #define SPEED_FORWARD		600
+ #define SPEED_ROTATE		SPEED_FORWARD*0.2
+ #define CORRECTION 			0.4					//set a range for the detection of the object in look_ball_hander()
+-//#define CORRECTION_BIS 		0.2
+ #define WHEEL_PERIMETER		13.0f // [cm]
+ #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
+-#define TIME_CONST			(1000.0f/GENERAL_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
++#define TIME_CONST			(1000.0f/GENERAL_MOTOR_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
+ #define TIME_CONST_SLOW		(1000.0f/LOOK_BALL_TIME_SLEEP/(SPEED_ROTATE)*NSTEP_ONE_TURN/WHEEL_PERIMETER)
+ 
+ 

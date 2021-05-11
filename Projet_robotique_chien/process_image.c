@@ -105,6 +105,7 @@ uint16_t extract_line_width(uint8_t *main_color, uint8_t *color2, uint8_t *color
 		}
 	}while(wrong_line);
 
+	// Assurance that the correct color line was found
 	if(line_not_found || main_color[(begin + end)/2] < color2[(begin + end)/2]
 		|| main_color[(begin + end)/2] < color3[(begin + end)/2]){
 		begin = 0;
@@ -123,7 +124,7 @@ uint16_t extract_line_width(uint8_t *main_color, uint8_t *color2, uint8_t *color
 	}
 }
 
-
+// Simple mean function
 int mean_buff(uint8_t *buffer) {
 	int mean = 0;
 	for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
@@ -133,6 +134,7 @@ int mean_buff(uint8_t *buffer) {
 	return mean;
 }
 
+// Determines what color is being shown and turns on the corresponding RBG LED
 uint8_t extract_color(uint8_t *buffer_green, uint8_t *buffer_red, uint8_t *buffer_blue){
 
 	if ((buffer_green[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
@@ -154,9 +156,6 @@ uint8_t extract_color(uint8_t *buffer_green, uint8_t *buffer_red, uint8_t *buffe
 //		chprintf((BaseSequentialStream *)&SD3, "BLUE, ");
 		return BLUE;
 	}
-//	 chprintf((BaseSequentialStream *)&SD3, "NO COLOR, GREEN = %d, RED = %d, BLUE = %d",
-//			buffer_green[IMAGE_BUFFER_SIZE/2], buffer_red[IMAGE_BUFFER_SIZE/2],
-//			buffer_blue([IMAGE_BUFFER_SIZE/2]));
 
 	return NO_COLOR;
 }
@@ -170,6 +169,11 @@ static THD_FUNCTION(CaptureImage, arg) {
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
 	po8030_advanced_config(FORMAT_RGB565, 0, 200, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
 	po8030_set_awb(0);
+
+
+	// White balance + RGB gain (Experimental values)
+//	po8030_set_rgb_gain(0x5E, 0x50, 0x5D);
+
 	dcmi_enable_double_buffering();
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
 	dcmi_prepare();
@@ -223,6 +227,7 @@ static THD_FUNCTION(ProcessImage, arg) {
     while(1){
     	//waits until an image has been captured
         chBSemWait(&image_ready_sem);
+
 		//gets the pointer to the array filled with the last image in RGB565    
 		img_buff_ptr = dcmi_get_last_image_ptr();
 
@@ -234,6 +239,8 @@ static THD_FUNCTION(ProcessImage, arg) {
 			image_green[i/2] = ((((uint8_t)img_buff_ptr[i]&0x07)<<5) + (((uint8_t)img_buff_ptr[i+1]&0xE0)>>3));
 
 		}
+
+		// Check that the correct process state is set
 		if (get_current_main_state() != WAIT_FOR_COLOR) {
 			process_image_current_state = FIND_COLOR;
 		} else {
@@ -251,7 +258,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 			//search for a line in the image and gets its width in pixels
 			switch(color_memory){
 			case RED:
-				for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+				for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
 					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
 						image_red[i] *= COLOR_MARGIN;
 					}
@@ -259,11 +266,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 				lineWidth = extract_line_width(image_red, image_green, image_blue);
 				break;
 			case GREEN:
-				for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
-					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
-						image_red[i] *= COLOR_MARGIN*2;
-					}
-				}
 				lineWidth = extract_line_width(image_green, image_red, image_blue);
 				break;
 			case BLUE:
@@ -276,6 +278,7 @@ static THD_FUNCTION(ProcessImage, arg) {
 				distance_cm = PXTOCM/lineWidth;
 			}
 			else{distance_cm = 50;}
+
 			if(send_to_computer){
 				//sends to the computer the image
 				//SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);

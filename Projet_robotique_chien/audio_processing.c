@@ -10,8 +10,8 @@
 #include <audio_processing.h>
 #include <process_image.h>
 #include <communications.h>
-#include <fft.h>
 #include <arm_math.h>
+#include <arm_const_structs.h>
 #include <leds.h>
 
 // Microphone states
@@ -46,9 +46,16 @@ static bool current_mic_state = WAIT_FOR_WHISTLE;
 #define FREQ_WHISTLE_L	FREQ_WHISTLE-5 //FREQ_WHISTLE - 78Hz
 #define FREQ_WHISTLE_H	FREQ_WHISTLE+5 //FREQ_WHISTLE + 78Hz
 
+// Optimized FFT
+void doFFT_optimized(uint16_t size, float* complex_buffer){
+	if(size == 1024)
+		arm_cfft_f32(&arm_cfft_sR_f32_len1024, complex_buffer, 0, 1);
+
+}
+
 /*
 *	Simple function used to detect the highest value in a buffer
-*	and to execute a motor command depending on it
+*	and to execute a command depending on it
 */
 void sound_remote(float* data){
 	float max_norm = MIN_VALUE_THRESHOLD;

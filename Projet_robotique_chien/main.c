@@ -122,7 +122,6 @@ int main(void)
     		wait_sem_motor();
     		current_main_state = FIND_BALL;
 
-
     		break;
     	case FIND_BALL:
 
@@ -165,8 +164,8 @@ int main(void)
     			set_rgb_led(LED8, 0, 0, 0);
         		chThdSleepMilliseconds(GENERAL_TIME_SLEEP);
     		}
-    		//stopCurrentMelody();
 
+    		// stopCurrentMelody();
     		break;
     	}
 

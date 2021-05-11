@@ -19,7 +19,7 @@
 #define DIST_TO_CENTER		20
 #define SPEED_FORWARD		600
 #define SPEED_ROTATE		SPEED_FORWARD*0.2
-#define CORRECTION 			0.4					//set a range for the detection of the object in look_ball_hander()
+#define CORRECTION 			0.25					//set a range for the detection of the object in look_ball_hander()
 #define WHEEL_PERIMETER		13.0f // [cm]
 #define NSTEP_ONE_TURN		1000 // number of step for 1 turn of the motor
 #define TIME_CONST			(1000.0f/GENERAL_MOTOR_TIME_SLEEP/SPEED_FORWARD*NSTEP_ONE_TURN/WHEEL_PERIMETER)
@@ -71,14 +71,14 @@ void go_back_center_handler(void);				//function called when ball found, semi-ci
 void go_back_home_handler(void);				//function called when robot in center, turn around and go back home
 
 
-//different fonction to move
+//different function to move
 
 void go_to(uint16_t nb_step , uint16_t counter);
 void go_to_slow(uint16_t nb_step , uint16_t counter);
 uint8_t dest_reached(uint16_t nb_step , uint16_t counter);
 
 
-//set current state by looking ate main state
+//set current state by looking at main state
 uint8_t current_mode(uint8_t main_state);
 
 
@@ -112,6 +112,7 @@ static THD_FUNCTION(Deplacement_robot, arg) {
     		move_center_handler();
     		chBSemSignal(&sendMotoState_sem);
     		chThdSleepMilliseconds(GENERAL_MOTOR_TIME_SLEEP);
+
 
     		current_motor_state = current_mode(get_current_main_state());
     		break;
@@ -175,7 +176,6 @@ void look_for_ball_handler(){
 
 	right_motor_set_speed(SPEED_ROTATE);
 	left_motor_set_speed(-SPEED_ROTATE);
-
 
 	while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
 
