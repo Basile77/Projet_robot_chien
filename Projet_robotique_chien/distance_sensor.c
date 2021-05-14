@@ -10,7 +10,7 @@
 #include <distance_sensor.h>
 
 #define TOF_SLEEP_DURATION_MS	50
-#define DIST_CORRECTION 		15
+#define DIST_CORRECTION 		0
 
 // TOF States
 #define NO_MEASURE			0

@@ -17,8 +17,9 @@
 #define CAPTURING			1
 
 #define COLOR_FULL_SCALE 	256
-#define COLOR_MARGIN 		1.1
-#define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE*0.4
+#define COLOR_MARGIN 		1.05
+#define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE*0.7
+
 #define MINIMUM_COLOR		180
 
 static float distance_cm = 10;
@@ -167,10 +168,10 @@ static THD_FUNCTION(CaptureImage, arg) {
     (void)arg;
 
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
-	po8030_advanced_config(FORMAT_RGB565, 0, 200, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
-	//po8030_set_awb(0);
-
-
+	po8030_advanced_config(FORMAT_RGB565, 0, 201, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
+	po8030_set_awb(0);
+	po8030_set_ae(0);
+	po8030_set_rgb_gain(0x64, 0x64, 0x64);
 	// White balance + RGB gain (Experimental values)
 //	po8030_set_rgb_gain(0x5E, 0x50, 0x5D);
 
@@ -269,6 +270,11 @@ static THD_FUNCTION(ProcessImage, arg) {
 				lineWidth = extract_line_width(image_green, image_red, image_blue);
 				break;
 			case BLUE:
+				for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+					if (image_blue[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
+						image_blue[i] *= COLOR_MARGIN;
+					}
+				}
 				lineWidth = extract_line_width(image_blue, image_green, image_red);
 				break;
 			}

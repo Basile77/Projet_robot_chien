@@ -52,12 +52,7 @@ static int8_t current_motor_state = NOT_MOVING;
 
 //Static parameters
 
-static int16_t position = 0;					//position of the center of the line
-static float distance = DIST_INIT;				//distance, calculated with the width of the line
-static uint16_t dist_TOF = DIST_INIT_TOF;		//distance given by the TOF sensor
 static float dist_to_memorise = DIST_INIT_TOF;	//distance of the object when detected
-
-
 static uint16_t angle_counter = 0;				//counter to remember the angle from looking to home to the object
 static uint16_t move_counter = 0;				//counter used in every move function
 
@@ -176,16 +171,15 @@ void look_for_ball_handler(){
 
 	right_motor_set_speed(SPEED_ROTATE);
 	left_motor_set_speed(-SPEED_ROTATE);
-	distance = get_distance_cm();
-	position = get_line_position();
+	float distance = get_distance_cm();
+	int16_t position = get_line_position();
 
-	while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION))|| (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50)){
-
+	do{
 		++angle_counter;
 		distance = get_distance_cm();
 		position = get_line_position();
 		chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
-	}
+	}while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION)) || (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50));
 
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
@@ -194,7 +188,7 @@ void look_for_ball_handler(){
 
 	position = get_line_position();
 	distance = get_distance_cm();
-	dist_to_memorise = get_distTOF()/10 - 2;
+	dist_to_memorise = get_distTOF()/10 - 2.5;
 
 
 }
@@ -204,13 +198,14 @@ void look_for_ball_handler(){
 void go_to_ball_handler(){
 
 	wait_sem_TOF();
-	dist_TOF = get_distTOF();
+	uint16_t dist_TOF = get_distTOF();
+	float distance = get_distance_cm();
+	int16_t position = get_line_position();
 	uint16_t old_position = position;
-	while (dist_TOF > 20){
+	while (dist_TOF > 25){
 
 		wait_sem_TOF();
 		dist_TOF = get_distTOF();
-		chprintf((BaseSequentialStream *)&SD3, "Distance = %d mm \n", dist_TOF);
 		distance = get_distance_cm();
 		position = get_line_position();
 		if (position == 0){
