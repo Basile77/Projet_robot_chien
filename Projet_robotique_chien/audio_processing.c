@@ -1,3 +1,5 @@
+//Modified File from TP5
+
 #include "ch.h"
 #include "hal.h"
 #include <main.h>
@@ -9,7 +11,6 @@
 #include <audio/microphone.h>
 #include <audio_processing.h>
 #include <process_image.h>
-#include <communications.h>
 #include <arm_math.h>
 #include <arm_const_structs.h>
 #include <leds.h>
@@ -73,9 +74,6 @@ void sound_remote(float* data){
 	if(max_norm_index >= FREQ_WHISTLE_L && max_norm_index <= FREQ_WHISTLE_H && get_color() != NO_COLOR){
 		chBSemSignal(&sendAudioState_sem);
 		current_mic_state = NO_MEASURE;
-	} else {
-		left_motor_set_speed(0);
-		right_motor_set_speed(0);
 	}
 
 }
@@ -166,10 +164,6 @@ void processAudioData(int16_t *data, uint16_t num_samples){
 	}
 }
 
-void wait_send_to_computer(void){
-	chBSemWait(&sendToComputer_sem);
-}
-
 float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 	if(name == LEFT_CMPLX_INPUT){
 		return micLeft_cmplx_input;
@@ -201,7 +195,5 @@ float* get_audio_buffer_ptr(BUFFER_NAME_t name){
 }
 
 void wait_sem_audio(void) {
-	chprintf((BaseSequentialStream *)&SD3, "J'attends actuellement l'audio");
 	chBSemWait(&sendAudioState_sem);
-	chprintf((BaseSequentialStream *)&SD3, "J'ai reçu");
 }

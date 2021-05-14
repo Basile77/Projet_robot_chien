@@ -14,8 +14,6 @@ CSRC += ./main.c \
 		./process_image.c \
 		./distance_sensor.c \
 		./audio_processing.c \
-		./communications.c \
-
 #Header folders to include
 INCDIR += 
 

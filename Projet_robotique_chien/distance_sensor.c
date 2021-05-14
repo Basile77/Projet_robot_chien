@@ -1,3 +1,5 @@
+//Original File
+
 #include "ch.h"
 #include "hal.h"
 #include <chprintf.h>
@@ -10,8 +12,6 @@
 #include <distance_sensor.h>
 
 #define TOF_SLEEP_DURATION_MS	50
-#define DIST_CORRECTION 		0
-
 // TOF States
 #define NO_MEASURE			0
 #define DISTANCE_TO_BALL	1
@@ -46,6 +46,7 @@ static THD_FUNCTION(DistanceDetec, arg) {
 
     	switch(current_TOF_state) {
     	case NO_MEASURE:
+    		//Does nothing
     		chThdSleepMilliseconds(TOF_SLEEP_DURATION_MS);
     		break;
     	case DISTANCE_TO_BALL:
@@ -59,15 +60,7 @@ static THD_FUNCTION(DistanceDetec, arg) {
 void distance_to_ball_handler(void) {
 
 	distTOF = VL53L0X_get_dist_mm();
-
-	if (distTOF > DIST_CORRECTION) {
-		distTOF -= DIST_CORRECTION;
-	} else {
-		distTOF = 0;
-	}
-
 	chBSemSignal(&distance_info_sem);
-	chprintf((BaseSequentialStream *)&SD3, "Distance à la source = %d mm \n", distTOF);
 }
 
 uint16_t get_distTOF(void) {

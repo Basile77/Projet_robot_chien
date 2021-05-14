@@ -1,3 +1,5 @@
+//Original File
+
 #include "ch.h"
 #include "hal.h"
 #include <math.h>
@@ -5,7 +7,6 @@
 #include <chprintf.h>
 #include <deplacement_robot.h>
 #include <leds.h>
-
 #include <main.h>
 #include <motors.h>
 #include <process_image.h>
@@ -26,7 +27,6 @@
 #define TIME_CONST_SLOW		(1000.0f/LOOK_BALL_TIME_SLEEP/(SPEED_ROTATE)*NSTEP_ONE_TURN/WHEEL_PERIMETER)
 
 
-//defini 2 fois ATTENTION
 #define PI                  3.1415f
 #define WHEEL_DISTANCE      5.35f    //cm
 #define PERIMETER_EPUCK     (PI * WHEEL_DISTANCE)
@@ -66,11 +66,11 @@ void go_back_center_handler(void);				//function called when ball found, semi-ci
 void go_back_home_handler(void);				//function called when robot in center, turn around and go back home
 
 
-//different function to move
+//different function to move (explanation in definition)
 
 void go_to(uint16_t nb_step , uint16_t counter);
 void go_to_slow(uint16_t nb_step , uint16_t counter);
-uint8_t dest_reached(uint16_t nb_step , uint16_t counter);
+bool dest_reached(uint16_t nb_step , uint16_t counter);
 
 
 //set current state by looking at main state
@@ -95,9 +95,6 @@ static THD_FUNCTION(Deplacement_robot, arg) {
         switch (current_motor_state){
 
     	case NOT_MOVING:
-
-    		right_motor_set_speed(0);
-    		left_motor_set_speed(0);
     		current_motor_state = current_mode(get_current_main_state());
     		chThdSleepMilliseconds(GENERAL_MOTOR_TIME_SLEEP);
     		break;
@@ -154,7 +151,6 @@ static THD_FUNCTION(Deplacement_robot, arg) {
 
 void move_center_handler(){
 
-
 	right_motor_set_speed(-SPEED_FORWARD);
 	left_motor_set_speed(-SPEED_FORWARD);
 	move_counter = 0;
@@ -168,7 +164,6 @@ void move_center_handler(){
 void look_for_ball_handler(){
 
 	angle_counter = 0;
-
 	right_motor_set_speed(SPEED_ROTATE);
 	left_motor_set_speed(-SPEED_ROTATE);
 	float distance = get_distance_cm();
@@ -180,6 +175,7 @@ void look_for_ball_handler(){
 		position = get_line_position();
 		chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
 	}while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION)) || (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50));
+	//leave the loop if the position of the center of the line is near the middle (corrected by the CORRECTION factor) and if distance is less than 50, this last one is a empirical secutiry factor to not be disturbed by noise
 
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
@@ -276,14 +272,15 @@ void go_back_home_handler(void){
 	nb_step = (DIST_TO_CENTER*TIME_CONST);
 
 	go_to(nb_step, move_counter);
-
+	right_motor_set_speed(0);
+	left_motor_set_speed(0);
 	current_motor_state = NOT_MOVING;
 }
 
 
+//Return 1 if destination reached, Return 0 oterwise
 
-
-uint8_t dest_reached(uint16_t nb_step , uint16_t counter){
+bool dest_reached(uint16_t nb_step , uint16_t counter){
 	if(counter < nb_step){
 		return 0;
 	}
@@ -296,7 +293,7 @@ uint8_t dest_reached(uint16_t nb_step , uint16_t counter){
 
 void go_to(uint16_t nb_step , uint16_t counter){
 
-	uint8_t destination_reached = 0 ;
+	bool destination_reached = 0 ;
 
 	while (!destination_reached){
 		destination_reached = dest_reached(nb_step, counter);
@@ -310,7 +307,7 @@ void go_to(uint16_t nb_step , uint16_t counter){
 
 void go_to_slow(uint16_t nb_step , uint16_t counter){
 
-	uint8_t destination_reached = 0 ;
+	bool destination_reached = 0 ;
 
 	while (!destination_reached){
 		destination_reached = dest_reached(nb_step, counter);
@@ -343,7 +340,7 @@ uint8_t current_mode(uint8_t main_state){
 	return NOT_MOVING;
 }
 
-void Deplacement_robot_start(void){
+void deplacement_robot_start(void){
 	chThdCreateStatic(waDeplacement_robot, sizeof(waDeplacement_robot), NORMALPRIO, Deplacement_robot, NULL);
 }
 

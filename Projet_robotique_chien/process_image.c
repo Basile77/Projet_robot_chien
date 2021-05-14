@@ -1,29 +1,33 @@
+//Modified File from TP4
+
+
+
 #include "ch.h"
 #include "hal.h"
 #include <chprintf.h>
 #include <usbcfg.h>
-
 #include <main.h>
 #include <camera/po8030.h>
 #include <leds.h>
 #include <audio_processing.h>
-
 #include <process_image.h>
 
-#define MEMORIZE_COLOR		0
-#define FIND_COLOR			1
 
-#define NOT_CAPTURING		0
-#define CAPTURING			1
+#define MEMORIZE_COLOR			0
+#define FIND_COLOR				1
 
-#define COLOR_FULL_SCALE 	256
-#define COLOR_MARGIN 		1.05
-#define COLOR_THRESHOLD		(uint16_t)COLOR_FULL_SCALE*0.7
+#define NOT_CAPTURING			0
+#define CAPTURING				1
 
-#define MINIMUM_COLOR		180
+#define COLOR_FULL_SCALE 		255
+#define COLOR_MARGIN_TEST 		1.1						//How much the main color must be higher than the others
+#define COLOR_MARGIN_BOOST 		1.3						//of how much the main color is boosted 		(Both are empirical)
+#define COLOR_THRESHOLD			(uint16_t)COLOR_FULL_SCALE*0.7
 
-static float distance_cm = 10;
-static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//middle
+#define MINIMUM_COLOR			180						//Minimum color intensity to be recognised		(empirical)
+
+static float distance_cm = 10;							//Distance to the line
+static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//position of the center of the line
 static uint8_t color_memory = NO_COLOR;
 
 static bool process_image_current_state = MEMORIZE_COLOR;
@@ -107,8 +111,8 @@ uint16_t extract_line_width(uint8_t *main_color, uint8_t *color2, uint8_t *color
 	}while(wrong_line);
 
 	// Assurance that the correct color line was found
-	if(line_not_found || main_color[(begin + end)/2] < color2[(begin + end)/2]*COLOR_MARGIN
-		|| main_color[(begin + end)/2] < color3[(begin + end)/2]*COLOR_MARGIN){
+	if(line_not_found || main_color[(begin + end)/2] < color2[(begin + end)/2]*COLOR_MARGIN_TEST
+		|| main_color[(begin + end)/2] < color3[(begin + end)/2]*COLOR_MARGIN_TEST){
 		begin = 0;
 		end = 0;
 		width = last_width;
@@ -144,18 +148,21 @@ uint8_t extract_color(uint8_t *buffer_green, uint8_t *buffer_red, uint8_t *buffe
 		set_rgb_led(LED6, 0, RGB_MAX_INTENSITY/2, 0);
 //		chprintf((BaseSequentialStream *)&SD3, "GREEN, ");
 		return GREEN;
+
 	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD)) {
 		set_rgb_led(LED6, RGB_MAX_INTENSITY/2, 0, 0);
 //		chprintf((BaseSequentialStream *)&SD3, "RED, ");
 		return RED;
+
 	} else if ((buffer_green[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_red[IMAGE_BUFFER_SIZE/2] < COLOR_THRESHOLD) &&
 			(buffer_blue[IMAGE_BUFFER_SIZE/2] > COLOR_THRESHOLD)) {
 		set_rgb_led(LED6, 0, 0, RGB_MAX_INTENSITY/2);
 //		chprintf((BaseSequentialStream *)&SD3, "BLUE, ");
 		return BLUE;
+
 	}
 
 	return NO_COLOR;
@@ -169,11 +176,13 @@ static THD_FUNCTION(CaptureImage, arg) {
 
 	//Takes pixels 0 to IMAGE_BUFFER_SIZE of the line 10 + 11 (minimum 2 lines because reasons)
 	po8030_advanced_config(FORMAT_RGB565, 0, 201, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
+
+	//Disable Auto exposure and auto white balance
 	po8030_set_awb(0);
 	po8030_set_ae(0);
-	po8030_set_rgb_gain(0x64, 0x64, 0x64);
-	// White balance + RGB gain (Experimental values)
-//	po8030_set_rgb_gain(0x5E, 0x50, 0x5D);
+	// Set a different gain for each color (empirical)
+	po8030_set_rgb_gain(0x64, 0x64, 0x75);
+
 
 	dcmi_enable_double_buffering();
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
@@ -223,7 +232,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 	static uint16_t lineWidth = 0;
 
-	static bool send_to_computer = true;
 
     while(1){
     	//waits until an image has been captured
@@ -260,20 +268,28 @@ static THD_FUNCTION(ProcessImage, arg) {
 			switch(color_memory){
 			case RED:
 				for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
-					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
-						image_red[i] *= COLOR_MARGIN;
+					if (image_red[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN_BOOST) {
+						image_red[i] *= COLOR_MARGIN_BOOST;
 					}
+					else {image_red[i] = COLOR_FULL_SCALE;}
 				}
 				lineWidth = extract_line_width(image_red, image_green, image_blue);
 				break;
 			case GREEN:
+				for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
+					if (image_green[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN_BOOST) {
+						image_green[i] *= COLOR_MARGIN_BOOST;
+					}
+					else {image_green[i] = COLOR_FULL_SCALE;}
+				}
 				lineWidth = extract_line_width(image_green, image_red, image_blue);
 				break;
 			case BLUE:
 				for (uint16_t i = 0; i < IMAGE_BUFFER_SIZE; i++) {
-					if (image_blue[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN) {
-						image_blue[i] *= COLOR_MARGIN;
+					if (image_blue[i] < (uint8_t)COLOR_FULL_SCALE/COLOR_MARGIN_BOOST) {
+						image_blue[i] *= COLOR_MARGIN_BOOST;
 					}
+					else {image_blue[i] = COLOR_FULL_SCALE;}
 				}
 				lineWidth = extract_line_width(image_blue, image_green, image_red);
 				break;
@@ -285,12 +301,6 @@ static THD_FUNCTION(ProcessImage, arg) {
 			}
 			else{distance_cm = 50;}
 
-			if(send_to_computer){
-				//sends to the computer the image
-				//SendUint8ToComputer(image_green, IMAGE_BUFFER_SIZE);
-			}
-			//invert the bool
-			send_to_computer = !send_to_computer;
 
 			break;
 		}
@@ -310,6 +320,6 @@ uint8_t get_color(void){
 }
 
 void process_image_start(void){
-	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO, ProcessImage, NULL);
-	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO, CaptureImage, NULL);
+	chThdCreateStatic(waProcessImage, sizeof(waProcessImage), NORMALPRIO+1, ProcessImage, NULL);
+	chThdCreateStatic(waCaptureImage, sizeof(waCaptureImage), NORMALPRIO+1, CaptureImage, NULL);
 }
