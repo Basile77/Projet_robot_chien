@@ -18,6 +18,7 @@
 #define DIST_INIT_TOF		500
 #define DIST_INIT 			50
 #define DIST_TO_CENTER		20
+#define DIST_MIN_TO_OBJECT	25
 #define SPEED_FORWARD		600
 #define SPEED_ROTATE		SPEED_FORWARD*0.2
 #define CORRECTION 			0.25					//set a range for the detection of the object in look_ball_hander()
@@ -42,7 +43,7 @@
 #define GO_BACK_CENTER		4
 #define GO_BACK_HOME		5
 
-#define GENERAL_MOTOR_TIME_SLEEP 	50
+#define GENERAL_MOTOR_TIME_SLEEP 	100
 #define LOOK_BALL_TIME_SLEEP		5
 
 //Current mode of this thread
@@ -52,7 +53,7 @@ static int8_t current_motor_state = NOT_MOVING;
 
 //Static parameters
 
-static float dist_to_memorise = DIST_INIT_TOF;	//distance of the object when detected
+static uint16_t dist_to_memorise = DIST_INIT_TOF;	//distance of the object when detected
 static uint16_t angle_counter = 0;				//counter to remember the angle from looking to home to the object
 static uint16_t move_counter = 0;				//counter used in every move function
 
@@ -166,16 +167,16 @@ void look_for_ball_handler(){
 	angle_counter = 0;
 	right_motor_set_speed(SPEED_ROTATE);
 	left_motor_set_speed(-SPEED_ROTATE);
-	float distance = get_distance_cm();
-	int16_t position = get_line_position();
+	uint16_t position = get_line_position();
+	uint16_t dist_TOF = get_distTOF();
 
 	do{
 		++angle_counter;
-		distance = get_distance_cm();
+		dist_TOF = get_distTOF();
 		position = get_line_position();
 		chThdSleepMilliseconds(LOOK_BALL_TIME_SLEEP);
-	}while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION)) || (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (distance == 50));
-	//leave the loop if the position of the center of the line is near the middle (corrected by the CORRECTION factor) and if distance is less than 50, this last one is a empirical secutiry factor to not be disturbed by noise
+	}while ((position < IMAGE_BUFFER_SIZE/2*(1 - CORRECTION)) || (position > IMAGE_BUFFER_SIZE/2*(1 + CORRECTION)) || (dist_TOF > 250));
+	//leave the loop if the position of the center of the line is near the middle (corrected by the CORRECTION factor) and if distance is greater than 500, this last one is to not be disturbed by noise
 
 	right_motor_set_speed(0);
 	left_motor_set_speed(0);
@@ -183,8 +184,7 @@ void look_for_ball_handler(){
 	chThdSleepMilliseconds(GENERAL_MOTOR_TIME_SLEEP);
 
 	position = get_line_position();
-	distance = get_distance_cm();
-	dist_to_memorise = get_distTOF()/10 - 2.5;
+	dist_to_memorise = get_distTOF() - DIST_MIN_TO_OBJECT;
 
 
 }
@@ -195,20 +195,20 @@ void go_to_ball_handler(){
 
 	wait_sem_TOF();
 	uint16_t dist_TOF = get_distTOF();
-	float distance = get_distance_cm();
+	uint16_t distance = get_distance_mm();
 	int16_t position = get_line_position();
 	uint16_t old_position = position;
-	while (dist_TOF > 25){
+	while (dist_TOF > DIST_MIN_TO_OBJECT){
 
 		wait_sem_TOF();
 		dist_TOF = get_distTOF();
-		distance = get_distance_cm();
+		distance = get_distance_mm();
 		position = get_line_position();
 		if (position == 0){
 			position = old_position;
 		}
-		right_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT);
-		left_motor_set_speed(distance/30*MOTOR_SPEED_LIMIT);
+		right_motor_set_speed(distance*MOTOR_SPEED_LIMIT/30);
+		left_motor_set_speed(distance*MOTOR_SPEED_LIMIT/30);
 		chThdSleepMilliseconds(GENERAL_MOTOR_TIME_SLEEP);
 
 	}
@@ -232,7 +232,7 @@ void go_back_center_handler(void){
 	move_counter = 0;
 	right_motor_set_speed(SPEED_FORWARD);
 	left_motor_set_speed(SPEED_FORWARD);
-	nb_step = (dist_to_memorise*TIME_CONST);
+	nb_step = (dist_to_memorise*TIME_CONST/10);
 	go_to(nb_step, move_counter);
 
 	right_motor_set_speed(0);

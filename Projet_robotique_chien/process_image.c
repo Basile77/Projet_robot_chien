@@ -26,7 +26,7 @@
 
 #define MINIMUM_COLOR			180						//Minimum color intensity to be recognised		(empirical)
 
-static float distance_cm = 10;							//Distance to the line
+static uint16_t distance_mm = 100;							//Distance to the line
 static uint16_t line_position = IMAGE_BUFFER_SIZE/2;	//position of the center of the line
 static uint8_t color_memory = NO_COLOR;
 
@@ -297,9 +297,9 @@ static THD_FUNCTION(ProcessImage, arg) {
 
 			//converts the width into a distance between the robot and the camera
 			if(lineWidth){
-				distance_cm = PXTOCM/lineWidth;
+				distance_mm = (uint16_t)PXTOCM/lineWidth;
 			}
-			else{distance_cm = 50;}
+			else{distance_mm = 500;}
 
 
 			break;
@@ -307,8 +307,8 @@ static THD_FUNCTION(ProcessImage, arg) {
     }
 }
 
-float get_distance_cm(void){
-	return distance_cm;
+float get_distance_mm(void){
+	return distance_mm;
 }
 
 uint16_t get_line_position(void){

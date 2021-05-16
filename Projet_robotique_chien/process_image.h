@@ -13,5 +13,5 @@ uint8_t get_color(void);
 uint16_t get_line_position(void);
 
 //Return the distance to the object calculated from the width of the line
-float get_distance_cm(void);
+float get_distance_mm(void);
 #endif /* PROCESS_IMAGE_H */
